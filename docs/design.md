@@ -37,7 +37,7 @@ Characters / shifted keys, compared with the LaTeX for the same output:
 | 2×2 matrix | `[ a b ; c d mat` | 15 / 0 | 44 / 6 |
 | Piecewise \|x\| | `x abs [ x x 0 ge ; -x x 0 lt cases =` | 36 / 0 | 57 / 9 |
 
-The two binomial-style rows are the weak spot: with `+` spelled as a word, short sums cost about as many characters as LaTeX does.
+Euler's identity and the binomial square are the weak spots: with `+` spelled as a word, short sums cost about as many characters as LaTeX does.
 
 ## Open questions
 
