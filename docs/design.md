@@ -16,7 +16,6 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Leftover stack items:** anything left on the stack at the end is juxtaposed (`2 x 2 ^` → 2x²), and the tool **emits a warning**. Strictly this isn't valid RPN, but it's the convenient default. In the middle of an expression, multiplication is never implied, because values sitting next to each other are waiting for an operator. `*` must be written there.
 - **Variable-length arguments:** operators that take a variable number of arguments (matrices, piecewise, column vectors, …) use a **stack mark**. The operator takes everything above the mark.
 - **Subscript is `ssc`:** binary. `x i ssc` → x_i.
-- **`sum` takes one argument:** it pops only the summand.
 
 ## Proposed (not yet accepted)
 
@@ -25,6 +24,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Mark spelling | `[` (one key, nothing to close; the operator itself ends the group) | `mark` is clearer to read but four keystrokes. |
 | Where marks apply | Only operators that are *always* variadic | If marks were optional, `sum` inside a matrix row would see the matrix's mark and take the whole row. |
 | Rows inside a mark | `;` separates rows: `[ a b ; c d mat` | The same row shape works for `cases`. |
+| Sums (your proposal; replaces the earlier "`sum` takes one argument") | `sum` takes 2 arguments: index and summand (∑ₙ aₙ). `ser` takes 3: lower bound, upper bound, summand (∑ₙ₌₁^∞). `n 1 =` already builds a single stack value, so it can serve as the lower bound. | Argument order is undecided. There's no bare ∑ with no index. Products and integrals will probably want the same pattern. |
 | More glued tokens | `x1` (subscript), `f'` (prime) | With glued letters meaning a product, does `x1` mean x₁ or x·1? |
 
 ## Wanted, spelling not yet chosen
@@ -35,7 +35,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 ## Open questions
 
-1. **Sum bounds.** `sum` takes one argument (the summand), so where do the bounds ∑ₙ₌₁^∞ come from?
+1. **Argument order for `sum`/`ser`.** Bounds first (the order you read ∑ₙ₌₁^∞ aₙ), or summand first (matching `x i ssc`, where the base comes first)?
 2. **Which other symbols are "standard"?** `<`, `<=`, `!=`, `!`, `->`? Is `_` allowed alongside `ssc`?
 3. **What else is a named word?** `int`, `lim`, `mat`, `cases`, bold, hat?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
