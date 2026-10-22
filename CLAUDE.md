@@ -4,10 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project goal
 
-A math typesetter for Markdown files that is simpler and quicker to type than LaTeX. Its main idea is that math is written in RPN (postfix notation), so the author never types grouping parentheses. Operator order and arity decide the structure, and the typesetter adds whatever visual parentheses or layout the rendered output needs.
+A math typesetter for Markdown files that is simpler and quicker to type than LaTeX. Math is written in RPN (postfix notation), so the author never types grouping parentheses. The tool turns that input into LaTeX for KaTeX to render, and adds visual parentheses wherever precedence requires them.
 
-The goal is typing speed. When weighing syntax choices, prefer whichever needs fewer keystrokes and fewer shifted characters to write common expressions.
+## Working with the user
+
+The user is designing this language and wants Claude to act as a **guide, not the designer**. Lay out options, trade-offs, and consequences, and ask questions that help them think. Don't settle open design questions yourself, and don't present a finished design as decided.
+
+`docs/design.md` is the design log. It separates **Decided**, **Proposed**, and **Open** items. Only move something to Decided when the user has explicitly agreed to it.
+
+## Design constraints already agreed
+
+- TypeScript implementation; output is LaTeX for KaTeX.
+- Operators are short typed words or symbols that need no Shift (`- = / , ; . [ ] '`). Avoid Shift and `\`.
+- Operators that take a variable number of arguments use a stack mark.
 
 ## Current state
 
-The repository has no code yet. The implementation language, input syntax, output target (for example LaTeX/MathJax/KaTeX, MathML, or HTML), and toolchain have not been chosen. Update this file with build/test commands and an architecture overview once they exist.
+There is no code yet, so there are no build or test commands. Add them here, along with an architecture overview, once they exist.
