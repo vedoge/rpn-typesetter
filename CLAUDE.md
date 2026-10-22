@@ -17,8 +17,8 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 ## Design constraints already agreed
 
 - TypeScript implementation; output is LaTeX for KaTeX.
-- Operators are symbols (standard math symbols where they exist, e.g. `+`, `^`). Words only for named functions like `sqrt`, `exp`. Avoid `\`.
-- Tokens are separated by whitespace.
+- Arithmetic uses standard symbols (`+ - * / ^ =`). Named operations are short words (`sqrt`, `neg`, `ssc`, `sum`, …). Avoid `\`.
+- Tokens are separated by whitespace. Glued letters are a product; reserved words take priority over that.
 - Operators that take a variable number of arguments use a stack mark.
 
 ## Current state
