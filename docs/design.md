@@ -43,4 +43,4 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 4. **Escape hatch without `\`.** How do you reach a LaTeX command that isn't in the vocabulary, or write upright text?
 5. **Embedding in Markdown.** Does `$…$` switch to RPN completely, or do RPN and plain LaTeX live side by side? How do multi-line derivations line up?
 6. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like, both in the rendered page and on the command line?
-7. **Greek letters and capitals.** Full names (`alpha`) or short forms?
+7. **Greek letters and capitals.** Full names (`alpha`) or short forms? Or typed directly as Unicode (`π`, as in the integral example), which most keyboards can't do without a special layout?
