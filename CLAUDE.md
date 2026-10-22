@@ -10,12 +10,15 @@ A math typesetter for Markdown files that is simpler and quicker to type than La
 
 The user is designing this language and wants Claude to act as a **guide, not the designer**. Lay out options, trade-offs, and consequences, and ask questions that help them think. Don't settle open design questions yourself, and don't present a finished design as decided.
 
+The user is new to language implementation (lexing, parsing, ASTs, code generation) and wants to learn the theory along the way. Introduce each concept when it first matters, explain it briefly with a concrete example from this project, and don't use jargon that hasn't been explained yet.
+
 `docs/design.md` is the design log. It separates **Decided**, **Proposed**, and **Open** items. Only move something to Decided when the user has explicitly agreed to it.
 
 ## Design constraints already agreed
 
 - TypeScript implementation; output is LaTeX for KaTeX.
-- Operators are short typed words or symbols that need no Shift (`- = / , ; . [ ] '`). Avoid Shift and `\`.
+- Standard operations use standard math symbols (`+`, `^`, …). Everything else is a short word or a symbol that needs no Shift. Avoid `\`.
+- Tokens are separated by whitespace.
 - Operators that take a variable number of arguments use a stack mark.
 
 ## Current state
