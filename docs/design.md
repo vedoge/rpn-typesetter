@@ -15,6 +15,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Reserved words win:** if a run of letters matches a reserved word (`neg`, `exp`, `sum`, …), it's that word, not a product. A product that happens to spell a reserved word has to be written with spaces and `*`.
 - **Leftover stack items:** anything left on the stack at the end is juxtaposed (`2 x 2 ^` → 2x²), and the tool **emits a warning**. Strictly this isn't valid RPN, but it's the convenient default. In the middle of an expression, multiplication is never implied, because values sitting next to each other are waiting for an operator. `*` must be written there.
 - **Variable-length arguments:** operators that take a variable number of arguments (matrices, piecewise, column vectors, …) use a **stack mark**. The operator takes everything above the mark.
+- **Argument order: the order a human reads it aloud**, with the operator word last. `a 2 ^` ("a to the 2"), `x i ssc` ("x sub i"), `n 1 = oo 1 n 2 ^ / ser` ("sum from n=1 to ∞ of 1/n²").
 - **Subscript is `ssc`:** binary. `x i ssc` → x_i.
 - **Sums:** `sum` takes 2 arguments (index, summand) → ∑ₙ aₙ. `ser` takes 3 (lower bound, upper bound, summand) → ∑ₙ₌₁^∞. **Bounds come first:** `n 1 = oo 1 n 2 ^ / ser`. There's no bare ∑ without an index.
 
@@ -25,6 +26,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Mark spelling | `[` (one key, nothing to close; the operator itself ends the group) | `mark` is clearer to read but four keystrokes. |
 | Where marks apply | Only operators that are *always* variadic | If marks were optional, `sum` inside a matrix row would see the matrix's mark and take the whole row. |
 | Rows inside a mark | `;` separates rows: `[ a b ; c d mat` | The same row shape works for `cases`. |
+| Integrals (your proposal) | `0 π x sin dx int` → ∫₀^π sin x dx. Four arguments: lower bound, upper bound, integrand, differential. | Is the last argument `dx` (a glued product d·x) or just `x`, with `int` writing the d itself? Indefinite integrals need their own word, like `sum`/`ser`. |
 | More glued tokens | `x1` (subscript), `f'` (prime) | With glued letters meaning a product, does `x1` mean x₁ or x·1? |
 
 ## Wanted, spelling not yet chosen
