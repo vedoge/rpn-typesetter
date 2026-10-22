@@ -18,7 +18,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Argument order: the order a human reads it aloud**, with the operator word last. `a 2 ^` ("a to the 2"), `x i ssc` ("x sub i"), `n 1 = oo 1 n 2 ^ / ser` ("sum from n=1 to ∞ of 1/n²").
 - **Subscript is `ssc`:** binary. `x i ssc` → x_i.
 - **Sums:** `sum` takes 2 arguments (index, summand) → ∑ₙ aₙ. `ser` takes 3 (lower bound, upper bound, summand) → ∑ₙ₌₁^∞. **Bounds come first:** `n 1 = oo 1 n 2 ^ / ser`. There's no bare ∑ without an index.
-- **Definite integrals:** `int` takes 4 arguments: lower bound, upper bound, integrand, variable. `0 pi x sin x int` → ∫₀^π sin x dx. You type the variable (`x`), and `int` writes the d and its spacing.
+- **Definite integrals:** `int` takes 4 arguments: lower bound, upper bound, integrand, variable. `0 π x sin x int` → ∫₀^π sin x dx (spelling of π still open). You type the variable (`x`), and `int` writes the d and its spacing.
 
 ## Proposed (not yet accepted)
 
@@ -38,9 +38,10 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 ## Open questions
 
 1. **Which other symbols are "standard"?** `<`, `<=`, `!=`, `!`, `->`? Is `_` allowed alongside `ssc`?
-2. **What else is a named word?** `int`, `lim`, `mat`, `cases`, bold, hat?
-3. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
-4. **Escape hatch without `\`.** How do you reach a LaTeX command that isn't in the vocabulary, or write upright text?
-5. **Embedding in Markdown.** Does `$…$` switch to RPN completely, or do RPN and plain LaTeX live side by side? How do multi-line derivations line up?
-6. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like, both in the rendered page and on the command line?
-7. **Greek letters and capitals.** Full names (`alpha`) or short forms? Or typed directly as Unicode (`π`, as in the integral example), which most keyboards can't do without a special layout?
+2. **What else is a named word?** `lim`, `mat`, `cases`, bold, hat?
+3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
+4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
+5. **Escape hatch without `\`.** How do you reach a LaTeX command that isn't in the vocabulary, or write upright text?
+6. **Embedding in Markdown.** Does `$…$` switch to RPN completely, or do RPN and plain LaTeX live side by side? How do multi-line derivations line up?
+7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like, both in the rendered page and on the command line?
+8. **Greek letters and capitals.** Full names (`alpha`) or short forms? Or typed directly as Unicode (`π`, as in the integral example), which most keyboards can't do without a special layout?
