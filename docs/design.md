@@ -51,4 +51,5 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 6. **Embedding in LaTeX.** Which delimiters and environments accept the marker (`$…$`, `\(…\)`, `\[…\]`, `equation`, `align`, …)? In `align`, does each line need its own marker, and how do `&` and `\\` fit in with RPN?
 7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like on the command line? When LaTeX reports an error on a line of the generated file, how does the author find their own line (a source map)?
 8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
-9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool?
+9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool? Does the tool follow `\input`/`\include` into the author's other files? (It never reads packages.)
+10. **Exact marker position.** Must the marker be the very first character after the delimiter, or the first non-space one? If it must be first, `$ @$` is an easy way to write plain math that starts with the marker character.
