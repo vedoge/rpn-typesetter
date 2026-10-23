@@ -7,6 +7,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Target: LaTeX documents.** The tool is a preprocessor. It reads a `.tex` file that contains RPN math and writes plain LaTeX, which the normal LaTeX toolchain then compiles. (This replaces the earlier Markdown + KaTeX target.)
 - **Implementation:** an external tool written in TypeScript, run before LaTeX. `latexmk` runs both steps.
 - **Not LuaLaTeX:** running inside TeX through Lua was considered and rejected. It would avoid the extra step, but it would mean writing Lua instead of TypeScript, debugging inside a TeX run, and supporting only LuaLaTeX.
+- **Marker position:** the marker is the first non-space character after the opening math delimiter, so `$@ a b +$` and `$ @ a b +$` are both RPN. Spaces never decide whether a block is RPN.
+- **Plain math that starts with the marker character:** put an empty group first. With `@` as the marker, `${}@$` is plain LaTeX math that typesets @. TeX ignores `{}`, so it doesn't change the output. Only the start of a block matters: `$x@y$` needs nothing.
 - **Postfix input:** math is written in RPN, so the author never types grouping parentheses. The typesetter adds any visual parentheses the output needs, based on operator precedence.
 - **Operator spelling:** arithmetic uses standard math symbols (`+ - * / ^ =`), even where they need Shift. Named operations are short words. That covers functions (`sqrt`, `exp`), notation like `ssc` (subscript) and `vec`, and `sum`. Avoid `\`; it's too far from the home row.
 - **Strict RPN for exponents:** `a b + 2 ^`, not `^2` as one token.
@@ -52,4 +54,3 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like on the command line? When LaTeX reports an error on a line of the generated file, how does the author find their own line (a source map)?
 8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool? Does the tool follow `\input`/`\include` into the author's other files? (It never reads packages.)
-10. **Exact marker position.** Must the marker be the very first character after the delimiter, or the first non-space one? If it must be first, `$ @$` is an easy way to write plain math that starts with the marker character.
