@@ -4,7 +4,9 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 ## Decided
 
-- **Implementation:** TypeScript. The output is LaTeX, rendered by KaTeX.
+- **Target: LaTeX documents.** The tool is a preprocessor. It reads a `.tex` file that contains RPN math and writes plain LaTeX, which the normal LaTeX toolchain then compiles. (This replaces the earlier Markdown + KaTeX target.)
+- **Implementation:** an external tool written in TypeScript, run before LaTeX. `latexmk` runs both steps.
+- **Not LuaLaTeX:** running inside TeX through Lua was considered and rejected. It would avoid the extra step, but it would mean writing Lua instead of TypeScript, debugging inside a TeX run, and supporting only LuaLaTeX.
 - **Postfix input:** math is written in RPN, so the author never types grouping parentheses. The typesetter adds any visual parentheses the output needs, based on operator precedence.
 - **Operator spelling:** arithmetic uses standard math symbols (`+ - * / ^ =`), even where they need Shift. Named operations are short words. That covers functions (`sqrt`, `exp`), notation like `ssc` (subscript) and `vec`, and `sum`. Avoid `\`; it's too far from the home row.
 - **Strict RPN for exponents:** `a b + 2 ^`, not `^2` as one token.
@@ -27,6 +29,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 | Idea | Suggestion | Trade-off to weigh |
 |---|---|---|
+| Marking RPN math | A marker character right after LaTeX's own math delimiter: `$; a b +$`, `\[; … \]`. Unmarked math stays plain LaTeX. | The marker must never start real math: `\|` (`$\|x\|$`), `=`, `<`, `>` would all clash. Candidates: `;` (no Shift, home row, but also proposed as the row separator) or `@` (Shift, very visible). |
 | Mark spelling | `[` (one key, nothing to close; the operator itself ends the group) | `mark` is clearer to read but four keystrokes. |
 | Where marks apply | Only operators that are *always* variadic | If marks were optional, `sum` inside a matrix row would see the matrix's mark and take the whole row. |
 | Rows inside a mark | `;` separates rows: `[ a b ; c d mat` | The same row shape works for `cases`. |
@@ -44,6 +47,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 2. **What else is a named word?** `lim`, `mat`, `cases`, bold, hat?
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
-5. **Escape hatch without `\`.** How do you reach a LaTeX command that isn't in the vocabulary, or write upright text?
-6. **Embedding in Markdown.** Does `$…$` switch to RPN completely, or do RPN and plain LaTeX live side by side? How do multi-line derivations line up?
-7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like, both in the rendered page and on the command line?
+5. **Escape hatch without `\`.** How do you reach a LaTeX command that isn't in the vocabulary, or write upright text? In a `.tex` file the author already types `\` outside math, so is "avoid `\`" still a rule inside RPN blocks?
+6. **Embedding in LaTeX.** Which delimiters and environments accept the marker (`$…$`, `\(…\)`, `\[…\]`, `equation`, `align`, …)? In `align`, does each line need its own marker, and how do `&` and `\\` fit in with RPN?
+7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like on the command line? When LaTeX reports an error on a line of the generated file, how does the author find their own line (a source map)?
+8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
+9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool?

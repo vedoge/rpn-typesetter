@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project goal
 
-A math typesetter for Markdown files that is simpler and quicker to type than LaTeX. Math is written in RPN (postfix notation), so the author never types grouping parentheses. The tool turns that input into LaTeX for KaTeX to render, and adds visual parentheses wherever precedence requires them.
+A LaTeX preprocessor that makes math simpler and quicker to type. Math is written in RPN (postfix notation), so the author never types grouping parentheses. The tool rewrites RPN math in a `.tex` file into plain LaTeX, adding visual parentheses wherever precedence requires them, and LaTeX compiles the result as usual.
 
 ## Working with the user
 
@@ -16,7 +16,7 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 
 ## Design constraints already agreed
 
-- TypeScript implementation; output is LaTeX for KaTeX.
+- TypeScript implementation, run as an external tool before LaTeX (via `latexmk`); output is plain LaTeX. Not a LuaLaTeX package.
 - Arithmetic uses standard symbols (`+ - * / ^ =`). Named operations are short words (`sqrt`, `neg`, `ssc`, `sum`, …). Avoid `\`.
 - Tokens are separated by whitespace. Glued letters are a product; reserved words take priority over that.
 - Operators that take a variable number of arguments use a stack mark.
