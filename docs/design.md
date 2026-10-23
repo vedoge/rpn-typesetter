@@ -7,6 +7,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Target: LaTeX documents.** The tool is a preprocessor. It reads a `.tex` file that contains RPN math and writes plain LaTeX, which the normal LaTeX toolchain then compiles. (This replaces the earlier Markdown + KaTeX target.)
 - **Implementation:** an external tool written in TypeScript, run before LaTeX. `latexmk` runs both steps.
 - **Not LuaLaTeX:** running inside TeX through Lua was considered and rejected. It would avoid the extra step, but it would mean writing Lua instead of TypeScript, debugging inside a TeX run, and supporting only LuaLaTeX.
+- **The RPN marker is `@`:** a block is RPN when `@` comes right after LaTeX's own math delimiter: `$@ a b +$`, `\[@ … \]`. Unmarked math stays plain LaTeX. (`;` was the other candidate; it went to the line separator instead.)
+- **`;` is the line separator:** it separates rows inside a mark, e.g. `[ a b ; c d mat`, and the same shape works for `cases`.
 - **Marker position:** the marker is the first non-space character after the opening math delimiter, so `$@ a b +$` and `$ @ a b +$` are both RPN. Spaces never decide whether a block is RPN.
 - **Plain math that starts with the marker character:** put an empty group first. With `@` as the marker, `${}@$` is plain LaTeX math that typesets @. TeX ignores `{}`, so it doesn't change the output. Only the start of a block matters: `$x@y$` needs nothing.
 - **Postfix input:** math is written in RPN, so the author never types grouping parentheses. The typesetter adds any visual parentheses the output needs, based on operator precedence.
@@ -31,10 +33,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 | Idea | Suggestion | Trade-off to weigh |
 |---|---|---|
-| Marking RPN math | A marker character right after LaTeX's own math delimiter: `$; a b +$`, `\[; … \]`. Unmarked math stays plain LaTeX. | The marker must never start real math: `\|` (`$\|x\|$`), `=`, `<`, `>` would all clash. Candidates: `;` (no Shift, home row, but also proposed as the row separator) or `@` (Shift, very visible). |
 | Mark spelling | `[` (one key, nothing to close; the operator itself ends the group) | `mark` is clearer to read but four keystrokes. |
 | Where marks apply | Only operators that are *always* variadic | If marks were optional, `sum` inside a matrix row would see the matrix's mark and take the whole row. |
-| Rows inside a mark | `;` separates rows: `[ a b ; c d mat` | The same row shape works for `cases`. |
 | More glued tokens | `x1` (subscript), `f'` (prime) | With glued letters meaning a product, does `x1` mean x₁ or x·1? |
 
 ## Wanted, spelling not yet chosen
@@ -50,7 +50,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
 5. **Escape hatch without `\`.** How do you reach a LaTeX command that isn't in the vocabulary, or write upright text? In a `.tex` file the author already types `\` outside math, so is "avoid `\`" still a rule inside RPN blocks?
-6. **Embedding in LaTeX.** Which delimiters and environments accept the marker (`$…$`, `\(…\)`, `\[…\]`, `equation`, `align`, …)? In `align`, does each line need its own marker, and how do `&` and `\\` fit in with RPN?
+6. **Embedding in LaTeX.** Which delimiters and environments accept the marker (`$…$`, `\(…\)`, `\[…\]`, `equation`, `align`, …)? In `align`, does each line need its own marker, and how do `&` and `\\` fit in with RPN? Does `;` also separate the lines of a multi-line display?
 7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like on the command line? When LaTeX reports an error on a line of the generated file, how does the author find their own line (a source map)?
 8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool? Does the tool follow `\input`/`\include` into the author's other files? (It never reads packages.)
+10. **Long formulas.** The tool runs before TeX, so it can't measure widths and can't choose line breaks by itself. Options: the author marks breaks by hand (where does a break token go in postfix?), the tool emits break hints at top-level operators and lets TeX choose (inline math only), or a break package like `breqn`. Related: `\left( … \right)` can't span a line break, so brackets around a break need fixed sizes (`\bigl( … \bigr)`).
