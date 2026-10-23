@@ -40,10 +40,4 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 ## Open questions
 
-1. **Which other symbols are "standard"?** `<`, `<=`, `!=`, `!`, `->`? Is `_` allowed alongside `ssc`?
-2. **What else is a named word?** `lim`, `mat`, `cases`, bold, hat?
-3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
-4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
-5. **Escape hatch without `\`.** How do you reach a LaTeX command that isn't in the vocabulary, or write upright text?
-6. **Embedding in Markdown.** Does `$…$` switch to RPN completely, or do RPN and plain LaTeX live side by side? How do multi-line derivations line up?
-7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like, both in the rendered page and on the command line?
+See `options.md`.
