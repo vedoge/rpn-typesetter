@@ -33,8 +33,10 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Variable-length arguments:** operators that take a variable number of arguments (matrices, piecewise, column vectors, …) use a **stack mark**. The operator takes everything above the mark.
 - **The mark is spelled `[`:** it's one key with nothing to close, because the operator ends the group. `[ a b ; c d mat`.
 - **Marks apply only to operators with no fixed arity.** Operators that always take a fixed number of arguments (`+`, `sum`, `ser`, …) ignore marks, so `sum` inside a matrix row takes its two arguments, not the whole row.
+- **Marks nest:** a variadic operator takes everything above the *nearest* mark, then removes that mark. In `[ [ a b col c ; d e mat`, `col` uses the second `[` and `mat` uses the first.
 - **Argument order: the order a human reads it aloud**, with the operator word last. `a 2 ^` ("a to the 2"), `x i ssc` ("x sub i"), `n 1 = oo 1 n 2 ^ / ser` ("sum from n=1 to ∞ of 1/n²").
 - **Greek letters use the LaTeX names without the backslash:** `alpha`, `pi`, `Gamma`. They're reserved words, so glued letters that spell one (`mu`, `pi`, `eta`) mean the Greek letter, not a product.
+- **Every letter LaTeX has a command for works the same way:** `ell` → ℓ, `hbar` → ℏ, `aleph` → ℵ, `Re` → ℜ, `wp` → ℘. These are reserved words too, so a product that spells one (`Re`, `wp`) needs spaces and `*`.
 - **Subscript is `ssc`:** binary. `x i ssc` → x_i.
 - **Sums:** `sum` takes 2 arguments (index, summand) → ∑ₙ aₙ. `ser` takes 3 (lower bound, upper bound, summand) → ∑ₙ₌₁^∞. **Bounds come first:** `n 1 = oo 1 n 2 ^ / ser`. There's no bare ∑ without an index.
 - **Definite integrals:** `int` takes 4 arguments: lower bound, upper bound, integrand, variable. `0 pi x sin x int` → ∫₀^π sin x dx. You type the variable (`x`), and `int` writes the d and its spacing.
@@ -52,14 +54,15 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - Commutators: [A, B] (and anticommutators?)
 - Bras ⟨ψ|, kets |ψ⟩, and probably brakets ⟨φ|ψ⟩
 - `vec`: how many arguments? A unary decoration (v → v⃗), or something else?
+- **Escape hatch:** a way to reach any LaTeX command that isn't in the vocabulary, and to write upright text (see open question 5).
 
 ## Open questions
 
-1. **Which other symbols are "standard"?** `<`, `<=`, `!=`, `!`, `->`? Is `_` allowed alongside `ssc`?
+1. **Which other symbols are "standard"?** Letters are settled (every LaTeX letter command, by name). Does the same rule cover non-letter symbols: `infty`, `partial`, `nabla`, and relations and arrows like `leq`, `in`, `to`? Each name added steals a glued product: `in` would mean ∈, not i·n, and `ne` would mean ≠. Does `oo` stay as a short form of `infty`? And what about ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
 2. **What else is a named word?** `lim`, `mat`, `cases`, bold, hat?
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
-5. **Escape hatch without `\`.** How do you reach a LaTeX command that isn't in the vocabulary, or write upright text? In a `.tex` file the author already types `\` outside math, so is "avoid `\`" still a rule inside RPN blocks?
+5. **Escape hatch spelling.** Options: a token starting with `\` is raw LaTeX pushed as a single value (`\mathcal{F}`), which breaks "avoid `\`" only in rare cases; a way to use an unknown command as an operator by stating its arity; a quoted string for upright text (`"if "` → `\text{if }`), which means the lexer must allow spaces inside quotes. Which of these, and how are they spelled?
 6. **Embedding in LaTeX.** Which delimiters and environments accept the marker (`$…$`, `\(…\)`, `\[…\]`, `equation`, `align`, …)? In `align`, does each line need its own marker, and how do `&` and `\\` fit in with RPN? Does `;` also separate the lines of a multi-line display?
 7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like on the command line? When LaTeX reports an error on a line of the generated file, how does the author find their own line (a source map)?
 8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
