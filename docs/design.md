@@ -9,6 +9,9 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Not LuaLaTeX:** running inside TeX through Lua was considered and rejected. It would avoid the extra step, but it would mean writing Lua instead of TypeScript, debugging inside a TeX run, and supporting only LuaLaTeX.
 - **The RPN marker is `@`:** a block is RPN when `@` comes right after LaTeX's own math delimiter: `$@ a b +$`, `\[@ … \]`. Unmarked math stays plain LaTeX. (`;` was the other candidate; it went to the line separator instead.)
 - **`;` is the line separator:** it separates rows inside a mark, e.g. `[ a b ; c d mat`, and the same shape works for `cases`.
+- **Line breaks: the tool chooses, the author overrides.** By default the tool breaks long formulas sensibly. The author adds a break by hand only when the default is wrong.
+- **Where a manual break goes:** a break token comes right after an operator and means "break before this operator's right operand". With `BR` standing in for the spelling: `a b + BR` → a ⏎ + b, and `a b = c = BR` → a = b ⏎ = c.
+- **Inline math:** the tool adds break hints at top-level operators (`=`, `+`, …) and TeX chooses where to break. The emitter avoids braces that would block a break.
 - **Marker position:** the marker is the first non-space character after the opening math delimiter, so `$@ a b +$` and `$ @ a b +$` are both RPN. Spaces never decide whether a block is RPN.
 - **Plain math that starts with the marker character:** put an empty group first. With `@` as the marker, `${}@$` is plain LaTeX math that typesets @. TeX ignores `{}`, so it doesn't change the output. Only the start of a block matters: `$x@y$` needs nothing.
 - **Postfix input:** math is written in RPN, so the author never types grouping parentheses. The typesetter adds any visual parentheses the output needs, based on operator precedence.
@@ -35,6 +38,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 |---|---|---|
 | Mark spelling | `[` (one key, nothing to close; the operator itself ends the group) | `mark` is clearer to read but four keystrokes. |
 | Where marks apply | Only operators that are *always* variadic | If marks were optional, `sum` inside a matrix row would see the matrix's mark and take the whole row. |
+| Brackets across a break | `\left( … \right. \\ \left. … \right)`, with `\vphantom{…}` of the whole bracketed contents on both lines | Without the phantom, each half sizes to its own line and the two can mismatch. The tool knows the whole contents, so it can add the phantom. The alternative is fixed sizes (`\bigl( … \bigr)`), where the tool has to guess the size. |
 | More glued tokens | `x1` (subscript), `f'` (prime) | With glued letters meaning a product, does `x1` mean x₁ or x·1? |
 
 ## Wanted, spelling not yet chosen
@@ -54,4 +58,6 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 7. **Errors and warnings.** What does a stack underflow, an unknown word, or the leftover-items warning look like on the command line? When LaTeX reports an error on a line of the generated file, how does the author find their own line (a source map)?
 8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool? Does the tool follow `\input`/`\include` into the author's other files? (It never reads packages.)
-10. **Long formulas.** The tool runs before TeX, so it can't measure widths and can't choose line breaks by itself. Options: the author marks breaks by hand (where does a break token go in postfix?), the tool emits break hints at top-level operators and lets TeX choose (inline math only), or a break package like `breqn`. Related: `\left( … \right)` can't span a line break, so brackets around a break need fixed sizes (`\bigl( … \bigr)`).
+10. **Breaking displayed formulas.** TeX never breaks display math itself, `multline` included, and the tool runs before TeX, so it can't measure widths. How does the tool's "sensible default" work for displays? Options: estimate widths from the tree (rough, sometimes wrong); measure on one LaTeX run and break on the next, which `latexmk` already repeats runs for (accurate, but a lot more machinery); or no automatic display breaks, so only manual breaks plus TeX's overfull-box warning. Derivation chains and long single expressions are about equally common.
+11. **Display environments.** `multline` suits one long expression but can't align anything. `align` suits derivation chains: the tool puts `&` before each relation that starts a line, and indents lines that start with `+`/`-`. Does the author always pick the environment, or can the tool pick it?
+12. **Break token spelling.** `;` is taken: inside a mark, `[ a b + ; c d mat` couldn't tell a row break from a line break.
