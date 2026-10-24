@@ -16,6 +16,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Unmeasured formulas get no breaks.** On the first run, or just after an edit, a display with no measurements yet is emitted unbroken. The next round breaks it.
 - **If the loop doesn't settle,** for example a two-column document where a break pushes an equation into a column of a different width, the tool stops after a maximum number of rounds and emits a warning.
 - **The author picks the display environment** (`\begin{align}@ …`, `\begin{multline}@ …`, …). The tool never chooses it.
+- **Breaks in `align`:** the tool writes the `&`s. A line that starts with a relation gets `&` before it (`&= d`). A line that continues a long step at `+`/`-` gets `&\qquad` before it (`&\qquad + e`).
+- **Breaks in `multline`:** the tool only places the `\\`s. `multline` handles the layout.
 - **Brackets across a break:** `\left( … \right. \\ \left. … \right)`, with `\vphantom{…}` of the whole bracketed contents on both lines, so both halves come out the same height. (Fixed sizes like `\bigl( … \bigr)` were rejected.)
 - **Marker position:** the marker is the first non-space character after the opening math delimiter, so `$@ a b +$` and `$ @ a b +$` are both RPN. Spaces never decide whether a block is RPN.
 - **Plain math that starts with the marker character:** put an empty group first. With `@` as the marker, `${}@$` is plain LaTeX math that typesets @. TeX ignores `{}`, so it doesn't change the output. Only the start of a block matters: `$x@y$` needs nothing.
@@ -63,5 +65,4 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool? Does the tool follow `\input`/`\include` into the author's other files? (It never reads packages.)
 10. **Measuring across runs.** How does `latexmk` learn that a changed measurements file means the tool must run again? What is the maximum number of rounds? Derivation chains and long single expressions are about equally common, so both need to work.
-11. **Breaks inside the chosen environment.** In `align`, should the tool put `&` before each relation that starts a line, and indent lines that start with `+`/`-` (`&\qquad + …`)? `multline` can't align anything, so what, if anything, changes there?
-12. **Break token spelling.** `;` is taken: inside a mark, `[ a b + ; c d mat` couldn't tell a row break from a line break.
+11. **Break token spelling.** `;` is taken: inside a mark, `[ a b + ; c d mat` couldn't tell a row break from a line break.
