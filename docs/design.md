@@ -10,7 +10,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **The RPN marker is `@`:** a block is RPN when `@` comes right after LaTeX's own math delimiter: `$@ a b +$`, `\[@ … \]`. Unmarked math stays plain LaTeX. (`;` was the other candidate; it went to the line separator instead.)
 - **`;` is the line separator:** it separates rows inside a mark, e.g. `[ a b ; c d mat`, and the same shape works for `cases`.
 - **Line breaks: the tool chooses, the author overrides.** By default the tool breaks long formulas sensibly. The author adds a break by hand only when the default is wrong.
-- **Where a manual break goes:** a break token comes right after an operator and means "break before this operator's right operand". With `BR` standing in for the spelling: `a b + BR` → a ⏎ + b, and `a b = c = BR` → a = b ⏎ = c.
+- **Manual breaks use `br`:** it comes right after an operator and means "break before this operator's right operand". `a b + br` → a ⏎ + b, and `a b = c = br` → a = b ⏎ = c. `br` is a reserved word, so a product b·r has to be written `b r *`.
 - **Inline math:** the tool adds break hints at top-level operators (`=`, `+`, …) and TeX chooses where to break. The emitter avoids braces that would block a break.
 - **Displayed formulas are broken by measuring.** On one LaTeX run, the emitted LaTeX measures the width of each piece where a break could go, and of the available line, and writes the numbers to a file. On the next run, the tool reads that file and chooses the breaks. `latexmk` already reruns until the output settles. (Estimating widths from the tree, and leaving displays unbroken, were the rejected options.)
 - **Unmeasured formulas get no breaks.** On the first run, or just after an edit, a display with no measurements yet is emitted unbroken. The next round breaks it.
@@ -31,6 +31,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Reserved words win:** if a run of letters matches a reserved word (`neg`, `exp`, `sum`, …), it's that word, not a product. A product that happens to spell a reserved word has to be written with spaces and `*`.
 - **Leftover stack items:** anything left on the stack at the end is juxtaposed (`2 x 2 ^` → 2x²), and the tool **emits a warning**. Strictly this isn't valid RPN, but it's the convenient default. In the middle of an expression, multiplication is never implied, because values sitting next to each other are waiting for an operator. `*` must be written there.
 - **Variable-length arguments:** operators that take a variable number of arguments (matrices, piecewise, column vectors, …) use a **stack mark**. The operator takes everything above the mark.
+- **The mark is spelled `[`:** it's one key with nothing to close, because the operator ends the group. `[ a b ; c d mat`.
+- **Marks apply only to operators with no fixed arity.** Operators that always take a fixed number of arguments (`+`, `sum`, `ser`, …) ignore marks, so `sum` inside a matrix row takes its two arguments, not the whole row.
 - **Argument order: the order a human reads it aloud**, with the operator word last. `a 2 ^` ("a to the 2"), `x i ssc` ("x sub i"), `n 1 = oo 1 n 2 ^ / ser` ("sum from n=1 to ∞ of 1/n²").
 - **Greek letters use the LaTeX names without the backslash:** `alpha`, `pi`, `Gamma`. They're reserved words, so glued letters that spell one (`mu`, `pi`, `eta`) mean the Greek letter, not a product.
 - **Subscript is `ssc`:** binary. `x i ssc` → x_i.
@@ -43,8 +45,6 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 | Idea | Suggestion | Trade-off to weigh |
 |---|---|---|
-| Mark spelling | `[` (one key, nothing to close; the operator itself ends the group) | `mark` is clearer to read but four keystrokes. |
-| Where marks apply | Only operators that are *always* variadic | If marks were optional, `sum` inside a matrix row would see the matrix's mark and take the whole row. |
 | More glued tokens | `x1` (subscript), `f'` (prime) | With glued letters meaning a product, does `x1` mean x₁ or x·1? |
 
 ## Wanted, spelling not yet chosen
@@ -65,4 +65,3 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool? Does the tool follow `\input`/`\include` into the author's other files? (It never reads packages.)
 10. **Measuring across runs.** How does `latexmk` learn that a changed measurements file means the tool must run again? What is the maximum number of rounds? Derivation chains and long single expressions are about equally common, so both need to work.
-11. **Break token spelling.** `;` is taken: inside a mark, `[ a b + ; c d mat` couldn't tell a row break from a line break.
