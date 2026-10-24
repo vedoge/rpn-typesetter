@@ -38,6 +38,11 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Argument order: the order a human reads it aloud**, with the operator word last. `a 2 ^` ("a to the 2"), `x i ssc` ("x sub i"), `n 1 = oo 1 n 2 ^ / ser` ("sum from n=1 to ∞ of 1/n²").
 - **Greek letters use the LaTeX names without the backslash:** `alpha`, `pi`, `Gamma`. They're reserved words, so glued letters that spell one (`mu`, `pi`, `eta`) mean the Greek letter, not a product.
 - **Every letter LaTeX has a command for works the same way:** `ell` → ℓ, `hbar` → ℏ, `aleph` → ℵ, `Re` → ℜ, `wp` → ℘. These are reserved words too, so a product that spells one (`Re`, `wp`) needs spaces and `*`.
+- **Symbols by name:** most symbols with a LaTeX command can be reserved names, even though each one takes a glued product away (`in` would mean ∈, not i·n). The vocabulary will be revised after testing if it doesn't fit.
+- **Starting vocabulary:** the whole Greek alphabet; `reals` → ℝ and `complex` → ℂ; logical and/or (∧, ∨); ∃.
+- **Escape hatch: raw value.** A token starting with `\` is copied into the output as-is and pushed as one value: `\mathcal{F} x ssc` → 𝓕ₓ. The tool can't see inside it, so it's an **atom** and never gets brackets. If the raw text needs brackets (`\alpha+\beta`), the author writes them.
+- **Escape hatch: raw operator.** `\cmd/N` pops N values and emits `\cmd{…}{…}`: `a b \overset/2` → `\overset{a}{b}`.
+- **Upright text:** a quoted string becomes `\text{…}`: `"if "` → `\text{if }`. Inside quotes, the lexer keeps spaces instead of ending the token.
 - **Subscript is `ssc`:** binary. `x i ssc` → x_i.
 - **Sums:** `sum` takes 2 arguments (index, summand) → ∑ₙ aₙ. `ser` takes 3 (lower bound, upper bound, summand) → ∑ₙ₌₁^∞. **Bounds come first:** `n 1 = oo 1 n 2 ^ / ser`. There's no bare ∑ without an index.
 - **Definite integrals:** `int` takes 4 arguments: lower bound, upper bound, integrand, variable. `0 pi x sin x int` → ∫₀^π sin x dx. You type the variable (`x`), and `int` writes the d and its spacing.
@@ -55,17 +60,14 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - Commutators: [A, B] (and anticommutators?)
 - Bras ⟨ψ|, kets |ψ⟩, and probably brakets ⟨φ|ψ⟩
 - `vec`: how many arguments? A unary decoration (v → v⃗), or something else?
-- **Escape hatch:** a way to reach any LaTeX command that isn't in the vocabulary, and to write upright text (see open question 5).
-
 ## Open questions
 
-1. **Which other symbols are "standard"?** Letters are settled (every LaTeX letter command, by name). Does the same rule cover non-letter symbols: `infty`, `partial`, `nabla`, and relations and arrows like `leq`, `in`, `to`? Each name added steals a glued product: `in` would mean ∈, not i·n, and `ne` would mean ≠. Does `oo` stay as a short form of `infty`? And what about ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
+1. **Starting vocabulary details.** Are and/or spelled `and`/`or` or `wedge`/`vee`? They're binary operators, so where do they rank for the bracket rule (usually ∧ above ∨, both below relations)? Is `exists` a bare symbol, or an operator that binds a variable (`x exists` → ∃x), and does `forall` come with it? Which other number sets (`naturals`, `integers`, `rationals`)? Does `oo` stay as a short form of ∞? ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
 2. **What else is a named word?** `lim`, `mat`, `cases`, bold, hat?
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
-5. **Escape hatch spelling.** Options: a token starting with `\` is raw LaTeX pushed as a single value (`\mathcal{F}`), which breaks "avoid `\`" only in rare cases; a way to use an unknown command as an operator by stating its arity; a quoted string for upright text (`"if "` → `\text{if }`), which means the lexer must allow spaces inside quotes. Which of these, and how are they spelled?
-6. **Embedding in LaTeX.** Which delimiters and environments accept the marker (`$…$`, `\(…\)`, `\[…\]`, `equation`, `align`, …)? In `align`, does each line need its own marker, and how do `&` and `\\` fit in with RPN? Does `;` also separate the lines of a multi-line display?
-7. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
-8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
-9. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool? Does the tool follow `\input`/`\include` into the author's other files? (It never reads packages.)
-10. **Measuring across runs.** How does `latexmk` learn that a changed measurements file means the tool must run again? What is the maximum number of rounds? Derivation chains and long single expressions are about equally common, so both need to work.
+5. **Embedding in LaTeX.** Which delimiters and environments accept the marker (`$…$`, `\(…\)`, `\[…\]`, `equation`, `align`, …)? In `align`, does each line need its own marker, and how do `&` and `\\` fit in with RPN? Does `;` also separate the lines of a multi-line display?
+6. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
+7. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
+8. **Files and `latexmk`.** What extension does the source file use (e.g. `paper.rtex` → `paper.tex`), and how does `latexmk` call the tool? Does the tool follow `\input`/`\include` into the author's other files? (It never reads packages.)
+9. **Measuring across runs.** How does `latexmk` learn that a changed measurements file means the tool must run again? What is the maximum number of rounds? Derivation chains and long single expressions are about equally common, so both need to work.
