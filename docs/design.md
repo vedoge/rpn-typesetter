@@ -39,7 +39,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Greek letters use the LaTeX names without the backslash:** `alpha`, `pi`, `Gamma`. They're reserved words, so glued letters that spell one (`mu`, `pi`, `eta`) mean the Greek letter, not a product.
 - **Every letter LaTeX has a command for works the same way:** `ell` → ℓ, `hbar` → ℏ, `aleph` → ℵ, `Re` → ℜ, `wp` → ℘. These are reserved words too, so a product that spells one (`Re`, `wp`) needs spaces and `*`.
 - **Symbols by name:** most symbols with a LaTeX command can be reserved names, even though each one takes a glued product away (`in` would mean ∈, not i·n). The vocabulary will be revised after testing if it doesn't fit.
-- **Starting vocabulary:** the whole Greek alphabet; `reals` → ℝ and `complex` → ℂ; logical and/or (∧, ∨); ∃.
+- **Starting vocabulary:** the whole Greek alphabet; `reals` → ℝ, `complex` → ℂ, `naturals` → ℕ, `integers` → ℤ, `rationals` → ℚ; `and` → ∧ and `or` → ∨ (binary operators); `exists` and `forall`.
+- **Quantifiers are operators:** `exists` and `forall` take one argument, the thing they quantify. `x exists` → ∃x, `x forall` → ∀x.
 - **Escape hatch: raw value.** A token starting with `\` is copied into the output as-is and pushed as one value: `\mathcal{F} x ssc` → 𝓕ₓ. The tool can't see inside it, so it's an **atom** and never gets brackets. If the raw text needs brackets (`\alpha+\beta`), the author writes them.
 - **Escape hatch: raw operator.** `\cmd/N` pops N values and emits `\cmd{…}{…}`: `a b \overset/2` → `\overset{a}{b}`.
 - **Upright text:** a quoted string becomes `\text{…}`: `"if "` → `\text{if }`. Inside quotes, the lexer keeps spaces instead of ending the token.
@@ -53,6 +54,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 | Idea | Suggestion | Trade-off to weigh |
 |---|---|---|
+| Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
 | More glued tokens | `x1` (subscript), `f'` (prime) | With glued letters meaning a product, does `x1` mean x₁ or x·1? |
 
 ## Wanted, spelling not yet chosen
@@ -62,7 +64,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - `vec`: how many arguments? A unary decoration (v → v⃗), or something else?
 ## Open questions
 
-1. **Starting vocabulary details.** Are and/or spelled `and`/`or` or `wedge`/`vee`? They're binary operators, so where do they rank for the bracket rule (usually ∧ above ∨, both below relations)? Is `exists` a bare symbol, or an operator that binds a variable (`x exists` → ∃x), and does `forall` come with it? Which other number sets (`naturals`, `integers`, `rationals`)? Does `oo` stay as a short form of ∞? ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
+1. **Remaining vocabulary details.** Does `oo` stay as a short form of ∞? ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
 2. **What else is a named word?** `lim`, `mat`, `cases`, bold, hat?
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
