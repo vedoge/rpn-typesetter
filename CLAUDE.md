@@ -23,4 +23,11 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 
 ## Current state
 
-There is no code yet, so there are no build or test commands. Add them here, along with an architecture overview, once they exist.
+The TypeScript project and test runner are set up. The preprocessor itself isn't written yet; `test/smoke.test.ts` only checks the toolchain.
+
+- `npm install`: install dev dependencies (TypeScript, Vitest).
+- `npm test`: run the tests once (Vitest). `npm run test:watch` reruns on change.
+- `npm run typecheck`: type-check `src/` and `test/` (`tsconfig.json`, no output).
+- `npm run build`: compile `src/` to `dist/` (`tsconfig.build.json`).
+
+Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.test.ts`. The planned pipeline is lexer → parser → emitter. Add an architecture overview here as those stages are written.
