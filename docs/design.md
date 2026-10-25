@@ -7,14 +7,17 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Target: LaTeX documents.** The tool is a preprocessor. It reads a `.tex` file that contains RPN math and writes plain LaTeX, which the normal LaTeX toolchain then compiles. (This replaces the earlier Markdown + KaTeX target.)
 - **Implementation:** an external tool written in TypeScript, run before LaTeX. `latexmk` runs both steps.
 - **Source files are `.rtex`:** the author edits `paper.rtex`, and the tool writes `paper.tex`, which LaTeX compiles.
-- **`latexmk` wraps the LaTeX command:** `.latexmkrc` replaces the LaTeX command with one that runs the tool first, so every LaTeX pass starts from freshly generated `.tex`.
+- **`latexmk` wraps the LaTeX command:** `.latexmkrc` replaces the LaTeX command with one that runs the tool first, so every LaTeX pass starts from freshly generated `.tex`. Only the pdfLaTeX command is wrapped; XeLaTeX and LuaLaTeX can be wrapped the same way if they're ever needed.
+- **Generated-file guard:** the tool writes a "generated from paper.rtex, do not edit" comment at the top of `paper.tex`, and refuses to overwrite a `paper.tex` that lacks it.
 - **Not LuaLaTeX:** running inside TeX through Lua was considered and rejected. It would avoid the extra step, but it would mean writing Lua instead of TypeScript, debugging inside a TeX run, and supporting only LuaLaTeX.
 - **The RPN marker is `@`:** a block is RPN when `@` comes right after LaTeX's own math delimiter: `$@ a b +$`, `\[@ … \]`. Unmarked math stays plain LaTeX. (`;` was the other candidate; it went to the line separator instead.)
+- **The marker works in every kind of math:** inline (`$…$`, `\(…\)`), display (`\[…\]`), every math environment (`equation`, `align`, `gather`, `multline`, …), and `\ensuremath{@ …}`.
 - **`;` is the line separator:** it separates rows inside a mark, e.g. `[ a b ; c d mat`, and the same shape works for `cases`.
 - **Line breaks: the tool chooses, the author overrides.** By default the tool breaks long formulas sensibly. The author adds a break by hand only when the default is wrong.
 - **Manual breaks use `br`:** it comes right after an operator and means "break before this operator's right operand". `a b + br` → a ⏎ + b, and `a b = c = br` → a = b ⏎ = c. `br` is a reserved word, so a product b·r has to be written `b r *`.
 - **Inline math:** the tool adds break hints at top-level operators (`=`, `+`, …) and TeX chooses where to break. The emitter avoids braces that would block a break.
 - **Displayed formulas are broken by measuring.** On one LaTeX run, the emitted LaTeX measures the width of each piece where a break could go, and of the available line, and writes the numbers to the `.aux` file. On the next run, the tool reads them from `.aux` and chooses the breaks. `latexmk` already reruns when `.aux` changes, so no extra file or rule is needed. (Estimating widths from the tree, and leaving displays unbroken, were the rejected options.)
+- **Measurement IDs:** each measurement is keyed by a hash of the formula's RPN text, plus its occurrence number when the same formula appears more than once. An edit changes the hash, so an edited formula is unmeasured for one run.
 - **Unmeasured formulas get no breaks.** On the first run, or just after an edit, a display with no measurements yet is emitted unbroken. The next round breaks it.
 - **If the loop doesn't settle,** for example a two-column document where a break pushes an equation into a column of a different width, `latexmk`'s own rerun limit (`$max_repeat`, 5 by default) stops it, and `latexmk` warns. The tool doesn't count rounds.
 - **The author picks the display environment** (`\begin{align}@ …`, `\begin{multline}@ …`, …). The tool never chooses it.
@@ -57,8 +60,6 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Idea | Suggestion | Trade-off to weigh |
 |---|---|---|
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
-| Generated-file guard | The tool writes a "generated from paper.rtex, do not edit" comment at the top of `paper.tex`, and refuses to overwrite a `paper.tex` without it | Protects hand-written work. Costs one line of output. |
-| Measurement IDs | Key each measurement by a hash of the formula's RPN text plus its occurrence number | An edit changes the hash, so the formula is unmeasured for one run, which matches "unmeasured formulas get no breaks". |
 | Decimal numbers | `3.14` is one number; `3.` and `.5` are errors | The lexer does this now. |
 | Quotes inside text | None: a string ends at the next `"`, so text can't contain `"` | The lexer does this now. An escape (`\"`) could come later. |
 | Spaces inside raw LaTeX | Whitespace ends a raw token even inside braces, so `\operatorname{arg max}` splits in two | The lexer does this now. The alternative is to keep reading until the braces balance. |
@@ -79,8 +80,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 2. **What else is a named word?** `lim`, `mat`, `cases`, bold, hat?
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
-5. **Embedding in LaTeX.** Which delimiters and environments accept the marker (`$…$`, `\(…\)`, `\[…\]`, `equation`, `align`, …)? In `align`, does each line need its own marker, and how do `&` and `\\` fit in with RPN? Does `;` also separate the lines of a multi-line display?
+5. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`? What separates separate equations in one display: `;` at the top level (outside any mark), or a marker on each line?
 6. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
 7. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 8. **Included files.** Does the tool follow `\input`/`\include` into the author's other `.rtex` files, or convert every `.rtex` in the project? (It never reads packages.) How does the wrapped command behave on the first run, before `paper.tex` exists? That needs a prototype.
-9. **Wrapping each engine.** `.latexmkrc` has a separate command for pdfLaTeX, XeLaTeX, and LuaLaTeX. Wrap all three, or only the one in use? Derivation chains and long single expressions are about equally common, so measured breaking must work for both.
