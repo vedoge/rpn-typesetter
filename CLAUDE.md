@@ -23,11 +23,20 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 
 ## Current state
 
-The TypeScript project and test runner are set up. The preprocessor itself isn't written yet; `test/smoke.test.ts` only checks the toolchain.
+The lexer is written and tested. The parser, emitter, and the outer scanner that finds `$@ … $` in a `.rtex` file don't exist yet.
 
 - `npm install`: install dev dependencies (TypeScript, Vitest).
 - `npm test`: run the tests once (Vitest). `npm run test:watch` reruns on change.
 - `npm run typecheck`: type-check `src/` and `test/` (`tsconfig.json`, no output).
 - `npm run build`: compile `src/` to `dist/` (`tsconfig.build.json`).
 
-Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.test.ts`. The planned pipeline is lexer → parser → emitter. Add an architecture overview here as those stages are written.
+Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.test.ts`.
+
+## Architecture
+
+The pipeline is lexer → parser → emitter, run on the text of one RPN block.
+
+- `src/lexer.ts`: `lex(source)` splits one RPN block into tokens (number, variable, reserved word, glued product, symbol, raw LaTeX, raw operator, quoted text), each with its `start`/`end` offsets. It doesn't stop at the first error; it returns every problem in `errors`.
+- `src/vocabulary.ts`: the reserved words and their role (`value` with its LaTeX, or `operator`). The lexer uses the role to decide glued tokens such as `2pi`; the parser will add operator arity.
+
+When the lexer has to make a choice the design log hasn't settled, it records it under **Proposed** in `docs/design.md` and says so.

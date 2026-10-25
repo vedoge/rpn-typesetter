@@ -14,7 +14,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Line breaks: the tool chooses, the author overrides.** By default the tool breaks long formulas sensibly. The author adds a break by hand only when the default is wrong.
 - **Manual breaks use `br`:** it comes right after an operator and means "break before this operator's right operand". `a b + br` → a ⏎ + b, and `a b = c = br` → a = b ⏎ = c. `br` is a reserved word, so a product b·r has to be written `b r *`.
 - **Inline math:** the tool adds break hints at top-level operators (`=`, `+`, …) and TeX chooses where to break. The emitter avoids braces that would block a break.
-- **Displayed formulas are broken by measuring.** On one LaTeX run, the emitted LaTeX measures the width of each piece where a break could go, and of the available line, and writes the numbers to the `.aux` file. On the next run, the tool reads them from `.aux` and chooses the breaks. `latexmk` already reruns when `.aux` changes, so no extra file or rule is needed. `latexmk` already reruns until the output settles. (Estimating widths from the tree, and leaving displays unbroken, were the rejected options.)
+- **Displayed formulas are broken by measuring.** On one LaTeX run, the emitted LaTeX measures the width of each piece where a break could go, and of the available line, and writes the numbers to the `.aux` file. On the next run, the tool reads them from `.aux` and chooses the breaks. `latexmk` already reruns when `.aux` changes, so no extra file or rule is needed. (Estimating widths from the tree, and leaving displays unbroken, were the rejected options.)
 - **Unmeasured formulas get no breaks.** On the first run, or just after an edit, a display with no measurements yet is emitted unbroken. The next round breaks it.
 - **If the loop doesn't settle,** for example a two-column document where a break pushes an equation into a column of a different width, `latexmk`'s own rerun limit (`$max_repeat`, 5 by default) stops it, and `latexmk` warns. The tool doesn't count rounds.
 - **The author picks the display environment** (`\begin{align}@ …`, `\begin{multline}@ …`, …). The tool never chooses it.
@@ -59,6 +59,12 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
 | Generated-file guard | The tool writes a "generated from paper.rtex, do not edit" comment at the top of `paper.tex`, and refuses to overwrite a `paper.tex` without it | Protects hand-written work. Costs one line of output. |
 | Measurement IDs | Key each measurement by a hash of the formula's RPN text plus its occurrence number | An edit changes the hash, so the formula is unmeasured for one run, which matches "unmeasured formulas get no breaks". |
+| Decimal numbers | `3.14` is one number; `3.` and `.5` are errors | The lexer does this now. |
+| Quotes inside text | None: a string ends at the next `"`, so text can't contain `"` | The lexer does this now. An escape (`\"`) could come later. |
+| Spaces inside raw LaTeX | Whitespace ends a raw token even inside braces, so `\operatorname{arg max}` splits in two | The lexer does this now. The alternative is to keep reading until the braces balance. |
+| Letters are ASCII only | `a`–`z`, `A`–`Z`; anything else (`α`, `é`) is an unknown symbol | The lexer does this now. |
+| Uppercase Greek with no LaTeX command | Not reserved: `Alpha`, `Beta`, … are products of letters; write `A` | "The whole Greek alphabet" might mean these too (`Alpha` → A). `omicron` → o likewise. |
+| `sin` is reserved | Included because the `int` example uses it | Other functions (`cos`, `log`, `lim`, …) wait on open question 2. `mat` and `cases` aren't reserved yet either, so they lex as products. |
 | More glued tokens | `x1` (subscript), `f'` (prime) | With glued letters meaning a product, does `x1` mean x₁ or x·1? |
 
 ## Wanted, spelling not yet chosen
@@ -66,6 +72,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - Commutators: [A, B] (and anticommutators?)
 - Bras ⟨ψ|, kets |ψ⟩, and probably brakets ⟨φ|ψ⟩
 - `vec`: how many arguments? A unary decoration (v → v⃗), or something else?
+
 ## Open questions
 
 1. **Remaining vocabulary details.** Does `oo` stay as a short form of ∞? ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
