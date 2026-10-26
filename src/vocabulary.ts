@@ -45,6 +45,16 @@ const values: Record<string, string> = {
   oo: "\\infty",
 };
 
+/**
+ * Functions LaTeX has a command for (\sin, \log, …) that take one argument.
+ * `lim`, `max` and the rest also have commands, but their arity is open.
+ */
+export const functions: ReadonlySet<string> = new Set([
+  "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc",
+  "deg", "det", "dim", "exp", "ker", "lg", "ln", "log", "Pr", "sec", "sin",
+  "sinh", "tan", "tanh",
+]);
+
 // How many values each operator takes off the stack:
 // - a number: exactly that many.
 // - "variadic": everything above the nearest mark `[`.
@@ -59,11 +69,7 @@ const operators: Record<string, Arity> = {
   br: "break",
   mat: "variadic", cases: "variadic", col: "variadic",
   vec: "undecided",
-  // Functions LaTeX has a command for (\sin, \log, \lim, …). Most take one
-  // argument; the rest wait on open question 2.
-  arccos: 1, arcsin: 1, arctan: 1, arg: 1, cos: 1, cosh: 1, cot: 1, coth: 1,
-  csc: 1, deg: 1, det: 1, dim: 1, exp: 1, ker: 1, lg: 1, ln: 1, log: 1,
-  Pr: 1, sec: 1, sin: 1, sinh: 1, tan: 1, tanh: 1,
+  ...Object.fromEntries([...functions].map((name) => [name, 1])),
   gcd: "undecided", hom: "undecided", inf: "undecided", lim: "undecided",
   liminf: "undecided", limsup: "undecided", max: "undecided",
   min: "undecided", sup: "undecided",

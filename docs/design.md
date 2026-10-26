@@ -31,6 +31,9 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Postfix input:** math is written in RPN, so the author never types grouping parentheses. The typesetter adds any visual parentheses the output needs, based on operator precedence.
 - **Operator spelling:** arithmetic uses standard math symbols (`+ - * / ^ =`), even where they need Shift. Named operations are short words. That covers functions (`sqrt`, `exp`), notation like `ssc` (subscript) and `vec`, and `sum`. Avoid `\`; it's too far from the home row.
 - **`*` prints side by side:** `a b *` → ab, like a glued product. `\times` is kept for the cross product.
+- **`\cdot` only when needed:** when a factor would start with a digit, it gets `\cdot` before it: `2 3 *` → 2·3, `a 2 *` → a·2, `x 2 ^ 3 *` → x²·3.
+- **Atoms never get brackets:** numbers, single letters, reserved values (Greek letters, `ell`, `reals`, …), raw LaTeX and quoted text.
+- **Function arguments are bracketed unless they're atoms:** `x sin` → sin x, `x y + sin` → sin(x + y).
 - **Strict RPN for exponents:** `a b + 2 ^`, not `^2` as one token.
 - **No glued minus:** `-b` is not a token. `-` always means binary subtraction.
 - **Negation is `neg`:** `b neg` → −b. One symbol can't take two different numbers of arguments in RPN, so negation needs its own spelling.
@@ -76,6 +79,16 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Empty pieces are errors | An empty block, an empty row (`[ a ; mat`), an empty equation (`; a`) and a trailing `;` (`a ;`) | The parser does this now. A trailing `;` could instead be allowed and ignored. |
 | Function arities | Named functions (`sin`, `log`, `det`, …) take 1 argument. `lim`, `liminf`, `limsup`, `max`, `min`, `sup`, `inf`, `gcd`, `hom` and `vec` are rejected until open question 2 settles them | The parser does this now. |
 | One parse error per block | The lexer reports every bad token, but the parser stops at the first error in a block, because the stack means nothing after one | Blocks are independent, so the tool can still report one error per block across a whole file. |
+| Ranks for the bracket rule | Loosest to tightest: `or` < `and` < relations < `+ - neg` < functions, sums, integrals, quantifiers < `* /` and glued products < `^ ssc` < atoms | The emitter does this now. Functions sit below products because they swallow what follows. |
+| Subscripted atoms count as atoms in two places | As a function argument (`x1 sin` → sin x₁) and as the base of `^` (`x i ssc 2 ^` → x_i²) | The emitter does this now. Other non-atom arguments are bracketed: sin(2x), sin(x²). |
+| Functions as factors | A function or sum used as a factor is bracketed on either side: `x sin y *` → (sin x)y, `y x sin *` → y(sin x) | The emitter does this now. The right-hand case is safe but cautious; y sin x would be unambiguous. |
+| Bases of `^` and `ssc` | Bracketed unless an atom: `a 2 ^ 3 ^` → (a²)³, `x sin 2 ^` → (sin x)². LaTeX rejects `a^2^3` outright | The emitter does this now. sin²x would need a special case. |
+| Negation after `+` or `-` | Bracketed: `a b neg +` → a + (−b). Elsewhere it isn't: −b + a, a = −b | The emitter does this now. |
+| Summands and integrands | Bracketed only if a sum or looser: ∑ₙ (aₙ + b), but ∑ₙ aₙbₙ | The emitter does this now. |
+| Stretchy brackets | `\left( … \right)` only around tall contents (fractions, sums, integrals, matrices); plain `( … )` otherwise | The emitter does this now. `\left`/`\right` adds stray spacing around short contents. |
+| Matrix brackets | `mat` and `col` print with round brackets (`pmatrix`). `cases` rows are value, then condition | The emitter does this now. `bmatrix` gives square brackets. |
+| Integral d | `\,dx`: italic d after a thin space | The emitter does this now. ISO style uses an upright d: `\,\mathrm{d}x`. |
+| Logic symbols | `and` → `\wedge`, `or` → `\vee` | The emitter does this now. |
 | Prime | `f'` glued | Not built yet. |
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
 
@@ -91,9 +104,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 1. **Remaining vocabulary details.** Does `oo` stay as a short form of ∞? ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
 2. **What else is a named word, and arities.** Bold, hat? How many arguments do `lim`, `max`, `min`, `sup`, `inf`, `gcd` and `vec` take? `lim` needs its approach (x→0); `max`/`min` might be variadic.
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
-4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
+4. **Packages.** The output needs `amsmath` (`\text`, `pmatrix`, `cases`) and `amssymb` (`\mathbb`, `\varkappa`, …). Does the author load them, or does the tool add them to the preamble?
 5. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`?
-6. **When side-by-side `*` is ambiguous.** `2 3 *` would print as 23, and `a 2 *` as a2. Use `\cdot` only when a number would touch the factor before it, always, or make it the author's problem?
-7. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
-8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
-9. **Included files.** Does the tool follow `\input`/`\include` into the author's other `.rtex` files, or convert every `.rtex` in the project? (It never reads packages.) How does the wrapped command behave on the first run, before `paper.tex` exists? That needs a prototype.
+6. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
+7. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
+8. **Included files.** Does the tool follow `\input`/`\include` into the author's other `.rtex` files, or convert every `.rtex` in the project? (It never reads packages.) How does the wrapped command behave on the first run, before `paper.tex` exists? That needs a prototype.
