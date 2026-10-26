@@ -38,6 +38,12 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **The base of `^` is bracketed unless it's an atom or a subscripted atom:** `a 2 ^ 3 ^` → (a²)³, `x sin 2 ^` → (sin x)².
 - **The base of `ssc` never gets brackets:** subscripts are notational (tensor indices, for example). `T mu ^ nu ssc` → T^μ_ν. A base that LaTeX can't take as is goes in an invisible group: `x i ssc j ssc` → `{x_i}_j`, `a b + i ssc` → `{a + b}_i`.
 - **The tool loads `amsmath` and `amssymb` itself,** which the output needs for `\text`, `pmatrix`, `cases` and `\mathbb`.
+- **Packages load right after `\documentclass{…}`,** on the same line so line numbers don't move. A package the author already loads is skipped (`mathtools` counts as `amsmath`), to avoid an option clash. Files without `\documentclass` get nothing.
+- **Separate equations in `align`-like environments** each get `&` before their relation: `a &= b \\ c &= d`. `gather` gets no `&`.
+- **Recognised math environments:** `equation`, `displaymath`, `math`, `multline`, `gather`, `gathered`, `eqnarray`, `align`, `flalign`, `alignat`, `aligned`, `alignedat`, `split`, and starred forms. Several equations in a one-equation region (`$…$`, `\[…\]`, `equation`, `multline`) are an error that points to `align` or `gather`.
+- **`%` comments inside an RPN block are ignored,** as LaTeX would. `\%` is never a comment: in RPN it's a raw token (a literal %), and inside quoted text it stays `\%`.
+- **Errors:** every bad block is reported (one error per block) as `paper.rtex:12:8: error: …`, then the tool exits 1 without writing `paper.tex`.
+- **A function or sum used as a factor is bracketed only when something follows it:** `x sin y *` → (sin x)y, but `y x sin *` → y sin x.
 - **Function arguments are bracketed unless they're atoms:** `x sin` → sin x, `x y + sin` → sin(x + y).
 - **Strict RPN for exponents:** `a b + 2 ^`, not `^2` as one token.
 - **No glued minus:** `-b` is not a token. `-` always means binary subtraction.
@@ -84,18 +90,16 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Empty pieces are errors | An empty block, an empty row (`[ a ; mat`), an empty equation (`; a`) and a trailing `;` (`a ;`) | The parser does this now. A trailing `;` could instead be allowed and ignored. |
 | Function arities | Named functions (`sin`, `log`, `det`, …) take 1 argument. `lim`, `liminf`, `limsup`, `max`, `min`, `sup`, `inf`, `gcd`, `hom` and `vec` are rejected until open question 2 settles them | The parser does this now. |
 | One parse error per block | The lexer reports every bad token, but the parser stops at the first error in a block, because the stack means nothing after one | Blocks are independent, so the tool can still report one error per block across a whole file. |
-| Functions as factors | A function or sum used as a factor is bracketed on either side: `x sin y *` → (sin x)y, `y x sin *` → y(sin x) | The emitter does this now. The right-hand case is safe but cautious; y sin x would be unambiguous. |
 | Negation after `+` or `-` | Bracketed: `a b neg +` → a + (−b). Elsewhere it isn't: −b + a, a = −b | The emitter does this now. |
 | Summands and integrands | Bracketed only if a sum or looser: ∑ₙ (aₙ + b), but ∑ₙ aₙbₙ | The emitter does this now. |
 | Stretchy brackets | `\left( … \right)` only around tall contents (fractions, sums, integrals, matrices); plain `( … )` otherwise | The emitter does this now. `\left`/`\right` adds stray spacing around short contents. |
 | Matrix brackets | `mat` and `col` print with round brackets (`pmatrix`). `cases` rows are value, then condition | The emitter does this now. `bmatrix` gives square brackets. |
 | Integral d | `\,dx`: italic d after a thin space | The emitter does this now. ISO style uses an upright d: `\,\mathrm{d}x`. |
 | Logic symbols | `and` → `\wedge`, `or` → `\vee` | The emitter does this now. |
-| Where packages are loaded | Right after `\documentclass{…}`, on the same line so line numbers don't move. A package the author already loads is skipped (`mathtools` counts as `amsmath`), to avoid an option clash. Files without `\documentclass` get nothing | The scanner does this now. |
-| Aligned separate equations | In `align`-like environments, each `;`-separated equation gets `&` just before its root relation: `a &= b \\ c &= d`. `gather` gets no `&` | The scanner does this now. |
-| Recognised math environments | `equation`, `displaymath`, `math`, `multline`, `gather`, `gathered`, `eqnarray`, `align`, `flalign`, `alignat`, `aligned`, `alignedat`, `split` (and starred forms). Several equations are an error in a one-equation region (`$…$`, `\[…\]`, `equation`, `multline`) | The scanner does this now. Adding the author's own environments is still open. |
-| Comments inside RPN | `%` to the end of the line is ignored inside an RPN block, as LaTeX would; `\%` is a raw token | The scanner does this now. |
-| Error format and count | `paper.rtex:12:8: error: …`; every bad block is reported (one parse error per block), then the tool exits 1 without writing `paper.tex` | The tool does this now. |
+| A chain aligns at its first relation | In `align`, `a b = c =` → `a &= b = c`, so a broken chain reads `a &= b \\ &= c` | The emitter does this now. |
+| Where `br` can't go | An error in a one-line region (`$…$`, `\[…\]`, `equation`), and inside a box (fraction, root, exponent, subscript, bounds, matrix entry) | The emitter does this now. A broken `equation` could instead be wrapped in `split` automatically. |
+| Numbering a broken equation | In `align` and `gather`, every line but the last gets `\notag`, so the equation is numbered once, on its last line (where its `\label` goes) | The emitter does this now. |
+| Breaking between factors | `a b * br` → a ⏎ b; with a digit, a ⏎ ·2 | The emitter does this now. |
 | Prime | `f'` glued | Not built yet. |
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
 
@@ -115,3 +119,4 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 5. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
 6. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 7. **Included files.** Does the tool follow `\input`/`\include` into the author's other `.rtex` files, or convert every `.rtex` in the project? (It never reads packages.) How does the wrapped command behave on the first run, before `paper.tex` exists? That needs a prototype.
+9. **LuaLaTeX, again?** It was rejected early on (see Decided). It would let a formula be measured and broken in the same run, with no `.aux` loop, but costs pdfLaTeX support and a rewrite in Lua. Revisit before building measured breaks?

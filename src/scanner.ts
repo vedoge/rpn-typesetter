@@ -8,20 +8,12 @@
 
 import type { Diagnostic } from "./lexer.js";
 import { parse } from "./parser.js";
-import { emitEquation } from "./emitter.js";
-
-/**
- * How a math region lays out equations:
- * - "single": one equation (`$…$`, `\[…\]`, `equation`, `multline`, …).
- * - "lines": several equations, one per line (`gather`).
- * - "aligned": several equations, aligned at their relation (`align`).
- */
-type Layout = "single" | "lines" | "aligned";
+import { EmitError, emitEquation, type Layout } from "./emitter.js";
 
 /** Math environments the scanner recognises, and their layout. */
 const mathEnvironments: Readonly<Record<string, Layout>> = {
   equation: "single", "equation*": "single", displaymath: "single", math: "single",
-  multline: "single", "multline*": "single",
+  multline: "multline", "multline*": "multline",
   gather: "lines", "gather*": "lines", gathered: "lines",
   eqnarray: "lines", "eqnarray*": "lines",
   align: "aligned", "align*": "aligned", flalign: "aligned", "flalign*": "aligned",
@@ -80,7 +72,7 @@ export function convert(document: string): ConvertResult {
     if (result.errors.length > 0) continue;
 
     const second = result.equations[1];
-    if (second && region.layout === "single") {
+    if (second && (region.layout === "single" || region.layout === "multline")) {
       errors.push(
         shift({
           start: second.start,
@@ -91,8 +83,14 @@ export function convert(document: string): ConvertResult {
       continue;
     }
 
-    const align = region.layout === "aligned";
-    const latex = result.equations.map((eq) => emitEquation(eq, { align })).join(" \\\\ ");
+    let latex: string;
+    try {
+      latex = result.equations.map((eq) => emitEquation(eq, region.layout)).join(" \\\\ ");
+    } catch (error) {
+      if (!(error instanceof EmitError)) throw error;
+      errors.push(shift(error.diagnostic));
+      continue;
+    }
     pieces.push(document.slice(copiedTo, first), ` ${latex} `);
     copiedTo = region.contentEnd;
   }

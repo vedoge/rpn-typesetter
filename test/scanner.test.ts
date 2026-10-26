@@ -52,6 +52,19 @@ describe("scanner", () => {
       expect(output("\\begin{gather}@ a b = ; c d = \\end{gather}")).toBe("\\begin{gather} a = b \\\\ c = d \\end{gather}");
     });
 
+    it("places br breaks for the environment", () => {
+      expect(output("\\begin{multline}@ a b + c + br \\end{multline}")).toBe(
+        "\\begin{multline} a + b \\\\ + c \\end{multline}",
+      );
+      expect(output("\\begin{align}@ a b = c = br ; d e = \\end{align}")).toBe(
+        "\\begin{align} a &= b \\notag \\\\ &= c \\\\ d &= e \\end{align}",
+      );
+    });
+
+    it("reports a br that the region can't hold", () => {
+      expect(convert("$@ a b + br$").errors.map((e) => e.start)).toEqual([3]);
+    });
+
     it("keeps each equation's label", () => {
       expect(output("\\begin{align}@ \\label{eq:one} a b = ; c d = \\notag \\end{align}")).toBe(
         "\\begin{align} a &= b \\label{eq:one} \\\\ c &= d \\notag \\end{align}",
@@ -82,6 +95,10 @@ describe("scanner", () => {
 
     it("passes \\% inside an RPN block through as raw LaTeX", () => {
       expect(output("$@ 50 \\% *$")).toBe("$ 50 \\% $");
+    });
+
+    it("keeps \\% inside quoted text", () => {
+      expect(output('$@ "50\\% off"$')).toBe("$ \\text{50\\% off} $");
     });
 
     it("skips verbatim environments and \\verb", () => {

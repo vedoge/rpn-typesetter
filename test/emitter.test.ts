@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emitEquation, toLatex } from "../src/emitter.js";
+import { emitEquation, toLatex, type Layout } from "../src/emitter.js";
 import { parse } from "../src/parser.js";
 
 /** The LaTeX for a block that has exactly one equation and no problems. */
@@ -88,8 +88,12 @@ describe("emitter", () => {
       expect(latex("2x sin")).toBe("\\sin (2 x)");
     });
 
-    it("brackets a function used as a factor", () => {
+    it("brackets a function used as a factor, unless it's the last factor", () => {
       expect(latex("x sin y *")).toBe("(\\sin x) y");
+      expect(latex("y x sin *")).toBe("y \\sin x");
+      expect(latex("y x sin * z *")).toBe("y (\\sin x) z");
+      expect(latex("x sin y sin *")).toBe("(\\sin x) \\sin y");
+      expect(latex("c n a n ssc sum *")).toBe("c \\sum_{n} a_{n}");
     });
 
     it("brackets a negation that follows + or -", () => {
@@ -176,7 +180,7 @@ describe("emitter", () => {
       const result = parse(source);
       expect(result.errors).toEqual([]);
       expect(result.equations).toHaveLength(1);
-      return emitEquation(result.equations[0]!, { align: true });
+      return emitEquation(result.equations[0]!, "aligned");
     }
 
     it("puts & before the relation at the root", () => {
@@ -187,8 +191,11 @@ describe("emitter", () => {
     it("brackets both sides exactly as without align", () => {
       expect(aligned("a b or c d and =")).toBe("(a \\vee b) &= (c \\wedge d)");
       expect(latex("a b or c d and =")).toBe("(a \\vee b) = (c \\wedge d)");
-      expect(aligned("a b = c =")).toBe("a = b &= c");
       expect(aligned("a b c = =")).toBe("a &= (b = c)");
+    });
+
+    it("aligns a chain at its first relation", () => {
+      expect(aligned("a b = c =")).toBe("a &= b = c");
     });
 
     it("adds no & when the root isn't a relation", () => {
@@ -199,6 +206,60 @@ describe("emitter", () => {
     it("writes the label and \\notag after", () => {
       expect(aligned("\\label{eq:e} E m c 2 ^ * =")).toBe("E &= m c^{2} \\label{eq:e}");
       expect(aligned("a b = \\notag")).toBe("a &= b \\notag");
+    });
+  });
+
+  describe("line breaks", () => {
+    /** The one equation of a block, laid out as `layout`. */
+    function laidOut(source: string, layout: Layout): string {
+      const result = toLatex(source, layout);
+      expect(result.errors).toEqual([]);
+      return result.equations[0]!;
+    }
+
+    it("breaks before the operator in multline", () => {
+      expect(laidOut("a b + c + br", "multline")).toBe("a + b \\\\ + c");
+    });
+
+    it("aligns a broken chain at its relations in align", () => {
+      expect(laidOut("a b = c = br", "aligned")).toBe("a &= b \\notag \\\\ &= c");
+    });
+
+    it("indents a line that continues at + in align", () => {
+      expect(laidOut("a b c + d + br =", "aligned")).toBe("a &= b + c \\notag \\\\ &\\qquad + d");
+    });
+
+    it("numbers a broken equation once, on its last line", () => {
+      expect(laidOut("\\label{eq:x} a b + c + br", "lines")).toBe("a + b \\notag \\\\ + c \\label{eq:x}");
+    });
+
+    it("breaks between factors", () => {
+      expect(laidOut("a b * br", "multline")).toBe("a \\\\ b");
+      expect(laidOut("a 2 * br", "multline")).toBe("a \\\\ \\cdot 2");
+    });
+
+    it("splits brackets across a break, with a phantom of the whole contents", () => {
+      expect(laidOut("a b c + br *", "multline")).toBe(
+        "a \\left(\\vphantom{b + c} b\\right. \\\\ \\left.\\vphantom{b + c} + c\\right)",
+      );
+      expect(laidOut("x a b c + br * =", "aligned")).toBe(
+        "x &= a \\left(\\vphantom{b + c} b\\right. \\notag \\\\ &\\qquad \\left.\\vphantom{b + c} + c\\right)",
+      );
+    });
+
+    it("rejects a break where the display can't hold several lines", () => {
+      expect(toLatex("a b + br").errors.map((e) => e.message)).toEqual([
+        "`br` needs a display that can hold several lines, like multline, align or gather",
+      ]);
+    });
+
+    it("rejects a break inside a box", () => {
+      expect(toLatex("a b + br c /", "multline").errors.map((e) => e.message)).toEqual([
+        "`br` can't break a line inside a fraction",
+      ]);
+      expect(toLatex("a b + br sqrt", "multline").errors.map((e) => e.message)).toEqual([
+        "`br` can't break a line inside a square root",
+      ]);
     });
   });
 });

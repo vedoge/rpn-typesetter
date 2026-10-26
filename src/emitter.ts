@@ -10,8 +10,38 @@
 //   (+ a (- b c))  →  a + b - c        here they'd change nothing, so none
 
 import { parse, type Equation, type Node } from "./parser.js";
-import type { Diagnostic } from "./lexer.js";
+import type { Diagnostic, Span } from "./lexer.js";
 import { functions } from "./vocabulary.js";
+
+/**
+ * How the surrounding math lays out equations, which decides what a `br`
+ * break becomes:
+ * - "single": one equation that can't break (`$…$`, `\[…\]`, `equation`).
+ * - "multline": one equation; a break is `\\`.
+ * - "lines": several equations, one per line (`gather`); a break is `\\`.
+ * - "aligned": several equations aligned at their relation (`align`); a break
+ *   is `\\ &` before a relation, `\\ &\qquad` before anything else.
+ */
+export type Layout = "single" | "multline" | "lines" | "aligned";
+
+/** A problem the emitter finds, such as a break inside a fraction. */
+export class EmitError extends Error {
+  constructor(readonly diagnostic: Diagnostic) {
+    super(diagnostic.message);
+  }
+}
+
+// While an equation is written, each `br` break is a placeholder: a NUL
+// character, then "r" before a relation or "o" before anything else. Brackets
+// around a placeholder split across the lines, and emitEquation finally turns
+// each placeholder into the LaTeX the layout needs.
+const breakMark = "\u0000";
+const breakBefore = (relation: boolean) => `${breakMark}${relation ? "r" : "o"}`;
+
+/** Set while writing \vphantom contents, which must not break. */
+let breaksOff = false;
+/** The relation that gets `&` in an aligned layout, if any. */
+let alignAt: Node | undefined;
 
 /**
  * How tightly each kind of node binds, loosest first. A child gets brackets
@@ -87,25 +117,66 @@ function isTall(node: Node): boolean {
 
 function bracket(node: Node): string {
   const inner = emitNode(node);
-  return isTall(node) ? `\\left(${inner}\\right)` : `(${inner})`;
+  if (!inner.includes(breakMark)) return isTall(node) ? `\\left(${inner}\\right)` : `(${inner})`;
+
+  // A break inside brackets: each line closes its half with an invisible
+  // \right. or opens with \left., and a \vphantom of the whole contents
+  // makes every half the same height.
+  breaksOff = true;
+  const phantom = `\\vphantom{${emitNode(node)}}`;
+  breaksOff = false;
+  const parts = inner.split(new RegExp(`(${breakMark}[ro])`));
+  const last = parts.length - 1;
+  return parts
+    .map((part, k) => {
+      if (k % 2 === 1) return part; // a break placeholder
+      const open = k === 0 ? "\\left(" : "\\left.";
+      const close = k === last ? "\\right)" : "\\right.";
+      return `${open}${phantom} ${part.trim()}${close} `;
+    })
+    .join("")
+    .trimEnd();
 }
 
 /** Emits a child, in brackets if `needed`. */
-function child(node: Node, needed: boolean): string {
-  return needed ? bracket(node) : emitNode(node);
+function child(node: Node, needed: boolean, followed = false): string {
+  return needed ? bracket(node) : emitNode(node, followed);
+}
+
+/** Emits something the layout puts in its own box, where a line can't break. */
+function boxed(node: Node, where: string): string {
+  const out = emitNode(node);
+  if (out.includes(breakMark)) fail(node, `\`br\` can't break a line inside ${where}`);
+  return out;
+}
+
+function fail(span: Span, message: string): never {
+  throw new EmitError({ start: span.start, end: span.end, message });
 }
 
 /**
  * Factors printed side by side. A factor that would start with a digit gets
- * `\cdot` before it, so `2 3 *` prints 2·3, not 23.
+ * `\cdot` before it, so `2 3 *` prints 2·3, not 23. With `breakAtLast`, the
+ * line breaks before the last factor.
  */
-function sideBySide(parts: readonly string[]): string {
-  return parts.reduce((out, part) => (out === "" ? part : `${out}${/^\d/.test(part) ? " \\cdot " : " "}${part}`), "");
+function sideBySide(parts: readonly string[], breakAtLast = false): string {
+  return parts.reduce((out, part, k) => {
+    if (k === 0) return part;
+    const separator = /^\d/.test(part) ? " \\cdot " : " ";
+    if (breakAtLast && k === parts.length - 1) return `${out} ${breakBefore(false)}${separator.trimStart()}${part}`;
+    return `${out}${separator}${part}`;
+  }, "");
 }
 
-/** Emits an operand of a product: bracketed if it binds more loosely than multiplication. */
-function factor(node: Node): string {
-  return child(node, rank(node) < Rank.multiplicative);
+/**
+ * Emits an operand of a product: bracketed if it binds more loosely than
+ * multiplication. A function or sum is the exception when nothing follows it
+ * in the product (`followed` is false), because there it can't swallow
+ * anything: y sin x, but (sin x)y.
+ */
+function factor(node: Node, followed: boolean): string {
+  const r = rank(node);
+  return child(node, r < Rank.multiplicative && (followed || r !== Rank.prefix), followed);
 }
 
 /** The argument of a function or quantifier: bracketed unless it's an atom or a subscripted atom. */
@@ -118,58 +189,70 @@ function body(node: Node): string {
   return child(node, rank(node) <= Rank.additive);
 }
 
-/** Writes `a ∘ b` for an infix operator of rank `r`, with `before` (such as `&`) just before the symbol. */
-function infix(operator: string, a: Node, b: Node, r: number, before = ""): string {
+/**
+ * Writes `a ∘ b` for an infix operator. A `br` break goes just before the
+ * symbol; so does `&` if this is the relation an aligned layout aligns at.
+ */
+function infix(node: Node & { kind: "apply" }): string {
+  const { operator } = node;
+  const [a, b] = node.args as [Node, Node];
+  const r = rank(node);
   const left = child(a, rank(a) < r);
   const negOnRight = b.kind === "apply" && b.operator === "neg" && (operator === "+" || operator === "-");
   const right = child(b, rank(b) < r || (rank(b) === r && !associative.has(operator)) || negOnRight);
-  return `${left} ${before}${infixLatex[operator]} ${right}`;
+  const lineBreak = node.breakBefore && !breaksOff ? breakBefore(r === Rank.relation) : "";
+  const align = node === alignAt ? "&" : "";
+  return `${left} ${lineBreak}${align}${infixLatex[operator]} ${right}`;
 }
 
-function emitApply(operator: string, args: readonly Node[], parent: Node): string {
+function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
+  const { operator, args } = node;
   const [a, b, c, d] = args;
 
-  if (operator in infixLatex) return infix(operator, a!, b!, rank(parent));
+  if (operator in infixLatex) return infix(node);
 
   if (functions.has(operator)) return `\\${operator} ${argument(a!)}`;
 
   switch (operator) {
     case "*":
-      return sideBySide([factor(a!), factor(b!)]);
+      return sideBySide([factor(a!, true), factor(b!, followed)], node.breakBefore && !breaksOff);
     case "/":
-      return `\\frac{${emitNode(a!)}}{${emitNode(b!)}}`;
+      return `\\frac{${boxed(a!, "a fraction")}}{${boxed(b!, "a fraction")}}`;
     case "^":
-      return `${child(a!, !isAtom(a!) && !isSubscriptedAtom(a!))}^{${emitNode(b!)}}`;
+      return `${child(a!, !isAtom(a!) && !isSubscriptedAtom(a!))}^{${boxed(b!, "an exponent")}}`;
     case "ssc": {
       // Subscripts are notational (tensor indices), so the base never gets
       // visible brackets. A base that isn't an atom or a power goes in an
       // invisible group, so x_i_j doesn't become a double-subscript error. A
       // power whose own base is subscripted (x_i^2) is grouped for the same reason.
       const power = a!.kind === "apply" && a!.operator === "^" && !(a!.args[0]!.kind === "apply" && a!.args[0]!.operator === "ssc");
-      const base = isAtom(a!) || power ? emitNode(a!) : `{${emitNode(a!)}}`;
-      return `${base}_{${emitNode(b!)}}`;
+      const base = isAtom(a!) || power ? emitNode(a!) : `{${boxed(a!, "a subscripted group")}}`;
+      return `${base}_{${boxed(b!, "a subscript")}}`;
     }
     case "neg":
       return `-${child(a!, rank(a!) <= Rank.additive)}`;
     case "sqrt":
-      return `\\sqrt{${emitNode(a!)}}`;
+      return `\\sqrt{${boxed(a!, "a square root")}}`;
     case "exists":
     case "forall":
       return `\\${operator} ${argument(a!)}`;
     case "sum":
-      return `\\sum_{${emitNode(a!)}} ${body(b!)}`;
+      return `\\sum_{${boxed(a!, "a sum's index")}} ${body(b!)}`;
     case "ser":
-      return `\\sum_{${emitNode(a!)}}^{${emitNode(b!)}} ${body(c!)}`;
+      return `\\sum_{${boxed(a!, "a sum's bounds")}}^{${boxed(b!, "a sum's bounds")}} ${body(c!)}`;
     case "int":
-      return `\\int_{${emitNode(a!)}}^{${emitNode(b!)}} ${body(c!)} \\,d${child(d!, !isAtom(d!))}`;
+      return `\\int_{${boxed(a!, "an integral's bounds")}}^{${boxed(b!, "an integral's bounds")}} ${body(c!)} \\,d${child(d!, !isAtom(d!))}`;
   }
   throw new Error(`the emitter doesn't know the operator \`${operator}\``);
 }
 
 const variadicEnvironment: Readonly<Record<string, string>> = { mat: "pmatrix", col: "pmatrix", cases: "cases" };
 
-/** Writes the LaTeX for one node of the tree. */
-export function emitNode(node: Node): string {
+/**
+ * Writes the LaTeX for one node of the tree. `followed` says whether another
+ * factor is printed right after it, side by side (see `factor`).
+ */
+export function emitNode(node: Node, followed = false): string {
   switch (node.kind) {
     case "number":
       return node.text;
@@ -182,33 +265,77 @@ export function emitNode(node: Node): string {
     case "text":
       return `\\text{${node.text}}`;
     case "product":
-      return sideBySide(node.factors.map(factor));
-    case "juxtapose":
-      return sideBySide(node.items.map(factor));
+    case "juxtapose": {
+      const items = node.kind === "product" ? node.factors : node.items;
+      return sideBySide(items.map((item, k) => factor(item, followed || k < items.length - 1)));
+    }
     case "apply":
-      // node.breakBefore is handled later, by the stage that knows the environment.
-      return emitApply(node.operator, node.args, node);
+      return emitApply(node, followed);
     case "rawApply":
-      return `${node.command}${node.args.map((arg) => `{${emitNode(arg)}}`).join("")}`;
+      return `${node.command}${node.args.map((arg) => `{${boxed(arg, "a raw operator's argument")}}`).join("")}`;
     case "variadic": {
       const env = variadicEnvironment[node.operator];
       if (env === undefined) throw new Error(`the emitter doesn't know the operator \`${node.operator}\``);
       // A column vector puts every entry on its own row.
       const rows = node.operator === "col" ? node.rows.flat().map((cell) => [cell]) : node.rows;
-      const body = rows.map((row) => row.map(emitNode).join(" & ")).join(" \\\\ ");
+      const body = rows.map((row) => row.map((cell) => boxed(cell, "a matrix entry")).join(" & ")).join(" \\\\ ");
       return `\\begin{${env}} ${body} \\end{${env}}`;
     }
   }
 }
 
+/** The first node `br` breaks before, if any. */
+function findBreak(node: Node): Node | undefined {
+  if (node.kind === "apply" && node.breakBefore) return node;
+  const children =
+    node.kind === "apply" || node.kind === "rawApply" ? node.args
+    : node.kind === "product" ? node.factors
+    : node.kind === "juxtapose" ? node.items
+    : node.kind === "variadic" ? node.rows.flat()
+    : [];
+  for (const c of children) {
+    const found = findBreak(c);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/** The leftmost relation of the chain at the root, like the first = in a = b = c. */
+function leftmostRelation(node: Node): Node | undefined {
+  let found: Node | undefined;
+  for (let n: Node | undefined = node; n?.kind === "apply" && n.operator === "="; n = n.args[0]) found = n;
+  return found;
+}
+
 /**
- * Writes one equation, with its label and \notag. With `align`, a relation at
- * the root gets `&` just before its symbol, for aligned displays.
+ * Writes one equation, with its label and \notag, for the given layout. In an
+ * aligned layout, the first relation at the root gets `&`. A `br` break
+ * becomes `\\` (with `&` or `&\qquad` when aligned). In layouts that number
+ * every line, lines that end in a break get \notag, so the equation is
+ * numbered once, on its last line.
  */
-export function emitEquation(equation: Equation, options: { align?: boolean } = {}): string {
+export function emitEquation(equation: Equation, layout: Layout = "single"): string {
   const { body } = equation;
-  const aligned = options.align === true && body.kind === "apply" && body.operator === "=";
-  let out = aligned ? infix(body.operator, body.args[0]!, body.args[1]!, rank(body), "&") : emitNode(body);
+  if (layout === "single") {
+    const broken = findBreak(body);
+    if (broken) fail(broken, "`br` needs a display that can hold several lines, like multline, align or gather");
+  }
+
+  alignAt = layout === "aligned" ? leftmostRelation(body) : undefined;
+  if (alignAt?.kind === "apply" && alignAt.breakBefore) alignAt = undefined; // its break supplies the &
+  let out: string;
+  try {
+    out = emitNode(body);
+  } finally {
+    alignAt = undefined;
+    breaksOff = false;
+  }
+
+  const notag = layout === "aligned" || layout === "lines" ? "\\notag " : "";
+  out = out.replace(new RegExp(`${breakMark}([ro])`, "g"), (_, kind: string) => {
+    const lineStart = layout !== "aligned" ? "" : kind === "r" ? "&" : "&\\qquad ";
+    return `${notag}\\\\ ${lineStart}`;
+  });
   if (equation.label !== undefined) out += ` \\label{${equation.label}}`;
   if (equation.notag) out += " \\notag";
   return out;
@@ -221,8 +348,13 @@ export interface EmitResult {
   readonly warnings: Diagnostic[];
 }
 
-/** Lexes, parses and emits one RPN block. */
-export function toLatex(source: string): EmitResult {
+/** Lexes, parses and emits one RPN block, laid out as `layout`. */
+export function toLatex(source: string, layout: Layout = "single"): EmitResult {
   const { equations, errors, warnings } = parse(source);
-  return { equations: equations.map((equation) => emitEquation(equation)), errors, warnings };
+  try {
+    return { equations: equations.map((equation) => emitEquation(equation, layout)), errors, warnings };
+  } catch (error) {
+    if (error instanceof EmitError) return { equations: [], errors: [error.diagnostic], warnings };
+    throw error;
+  }
 }
