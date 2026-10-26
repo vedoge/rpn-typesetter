@@ -32,6 +32,8 @@ export type Token = Span &
     | { readonly kind: "raw"; readonly latex: string } // `\mathcal{F}`
     | { readonly kind: "rawOperator"; readonly command: string; readonly arity: number } // `\overset/2`
     | { readonly kind: "text"; readonly text: string } // `"if "`
+    | { readonly kind: "label"; readonly name: string } // `\label{eq:energy}`
+    | { readonly kind: "notag" } // `\notag` or `\nonumber`
   );
 
 /** A problem found in the input. Any error means the RPN is invalid. */
@@ -129,6 +131,13 @@ function classify(text: string, span: Span): Token | Diagnostic {
 
   if (text.startsWith("\\")) {
     if (text === "\\") return fail("a lone `\\` is not a LaTeX command");
+    // Labels and \notag belong to the equation, not the stack.
+    if (text === "\\notag" || text === "\\nonumber") return { kind: "notag", ...span };
+    if (text === "\\label" || text.startsWith("\\label{")) {
+      const label = /^\\label\{([^{}]+)\}$/.exec(text);
+      if (!label) return fail("a label is written `\\label{name}`, with no spaces in the name");
+      return { kind: "label", name: label[1]!, ...span };
+    }
     const op = /^(\\[A-Za-z]+)\/(\d+)$/.exec(text);
     if (op) return { kind: "rawOperator", command: op[1]!, arity: Number(op[2]), ...span };
     return { kind: "raw", latex: text, ...span };

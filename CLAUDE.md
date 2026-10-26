@@ -23,7 +23,7 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 
 ## Current state
 
-The lexer is written and tested. The parser, emitter, and the outer scanner that finds `$@ … $` in a `.rtex` file don't exist yet.
+The lexer and parser are written and tested. The emitter, and the outer scanner that finds `$@ … $` in a `.rtex` file, don't exist yet.
 
 - `npm install`: install dev dependencies (TypeScript, Vitest).
 - `npm test`: run the tests once (Vitest). `npm run test:watch` reruns on change.
@@ -37,6 +37,9 @@ Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.te
 The pipeline is lexer → parser → emitter, run on the text of one RPN block.
 
 - `src/lexer.ts`: `lex(source)` splits one RPN block into tokens (number, variable, reserved word, glued product, symbol, raw LaTeX, raw operator, quoted text), each with its `start`/`end` offsets. It doesn't stop at the first error; it returns every problem in `errors`.
-- `src/vocabulary.ts`: the reserved words and their role (`value` with its LaTeX, or `operator`). The lexer uses the role to decide glued tokens such as `2pi`; the parser will add operator arity.
+- `src/parser.ts`: `parse(source)` lexes, then runs the stack over the tokens and builds a tree (`Node`) for each equation (`;` at the top level splits equations). Each operator becomes an `apply` node holding its arguments in reading order. Glued subscripts become `ssc` nodes, `br` sets `breakBefore`, variadic operators hold `rows`, and leftover values become a `juxtapose` node plus a warning. Labels and `\notag` attach to the `Equation`. It stops at the first error in a block.
+- `src/vocabulary.ts`: the reserved words. Values carry their LaTeX; operators carry their arity (a number, `"variadic"`, `"break"` for `br`, or `"undecided"`, which the parser rejects).
 
-When the lexer has to make a choice the design log hasn't settled, it records it under **Proposed** in `docs/design.md` and says so.
+Tests in `test/parser.test.ts` print trees compactly, e.g. `(+ a (- b c))`, so expected trees are easy to read.
+
+When the code has to make a choice the design log hasn't settled, it records it under **Proposed** in `docs/design.md` and says so.

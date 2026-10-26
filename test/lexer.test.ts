@@ -198,6 +198,21 @@ describe("lexer", () => {
       expect(shapes("\\overset/2")).toEqual([{ kind: "rawOperator", command: "\\overset", arity: 2 }]);
     });
 
+    it("recognises labels and \\notag instead of treating them as raw values", () => {
+      expect(shapes("\\label{eq:energy} \\notag \\nonumber")).toEqual([
+        { kind: "label", name: "eq:energy" },
+        { kind: "notag" },
+        { kind: "notag" },
+      ]);
+    });
+
+    it("rejects a label split by a space", () => {
+      expect(errors("\\label{eq: energy}")).toEqual([
+        "a label is written `\\label{name}`, with no spaces in the name",
+        "unknown symbol `energy}`",
+      ]);
+    });
+
     it("rejects a lone backslash", () => {
       expect(errors("\\")).toEqual(["a lone `\\` is not a LaTeX command"]);
     });

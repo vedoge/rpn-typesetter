@@ -1,15 +1,17 @@
 // Reserved words. A run of letters that exactly matches one of these is that
 // word, not a product of letters (see "Reserved words win" in docs/design.md).
 //
-// For now the lexer only needs to know each word's role:
+// Each word has a role:
 // - a "value" is something that sits on the stack, like `pi`. It can be glued
 //   after a number (`2pi` → 2·π), and it knows its LaTeX.
-// - an "operator" takes things off the stack, like `sqrt`. The parser will
-//   add each operator's arity when that stage is written.
+// - an "operator" takes things off the stack, like `sqrt`, and knows how
+//   many (its arity).
+
+export type Arity = number | "variadic" | "break" | "undecided";
 
 export type Word =
   | { readonly role: "value"; readonly latex: string }
-  | { readonly role: "operator" };
+  | { readonly role: "operator"; readonly arity: Arity };
 
 const values: Record<string, string> = {
   // Greek letters that LaTeX has commands for, lowercase and variants.
@@ -43,22 +45,35 @@ const values: Record<string, string> = {
   oo: "\\infty",
 };
 
-const operators = [
-  "neg", "sqrt", "ssc", "sum", "ser", "int", "vec",
-  "and", "or", "exists", "forall",
-  "br",
-  // Variadic: these take everything above the nearest mark.
-  "mat", "cases", "col",
-  // Functions LaTeX has a command for (\sin, \log, \lim, …).
-  "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc",
-  "deg", "det", "dim", "exp", "gcd", "hom", "inf", "ker", "lg", "lim",
-  "liminf", "limsup", "ln", "log", "max", "min", "Pr", "sec", "sin", "sinh",
-  "sup", "tan", "tanh",
-];
+// How many values each operator takes off the stack:
+// - a number: exactly that many.
+// - "variadic": everything above the nearest mark `[`.
+// - "break": `br`, which takes no values; it flags the operator just applied.
+// - "undecided": reserved, but its arity is still an open question, so the
+//   parser rejects it for now.
+const operators: Record<string, Arity> = {
+  neg: 1, sqrt: 1, exists: 1, forall: 1,
+  ssc: 2, sum: 2, and: 2, or: 2,
+  ser: 3,
+  int: 4,
+  br: "break",
+  mat: "variadic", cases: "variadic", col: "variadic",
+  vec: "undecided",
+  // Functions LaTeX has a command for (\sin, \log, \lim, …). Most take one
+  // argument; the rest wait on open question 2.
+  arccos: 1, arcsin: 1, arctan: 1, arg: 1, cos: 1, cosh: 1, cot: 1, coth: 1,
+  csc: 1, deg: 1, det: 1, dim: 1, exp: 1, ker: 1, lg: 1, ln: 1, log: 1,
+  Pr: 1, sec: 1, sin: 1, sinh: 1, tan: 1, tanh: 1,
+  gcd: "undecided", hom: "undecided", inf: "undecided", lim: "undecided",
+  liminf: "undecided", limsup: "undecided", max: "undecided",
+  min: "undecided", sup: "undecided",
+};
 
 export const vocabulary: ReadonlyMap<string, Word> = new Map<string, Word>([
   ...Object.entries(values).map(
     ([name, latex]): [string, Word] => [name, { role: "value", latex }],
   ),
-  ...operators.map((name): [string, Word] => [name, { role: "operator" }]),
+  ...Object.entries(operators).map(
+    ([name, arity]): [string, Word] => [name, { role: "operator", arity }],
+  ),
 ]);
