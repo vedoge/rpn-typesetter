@@ -30,6 +30,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Plain math that starts with the marker character:** put an empty group first. With `@` as the marker, `${}@$` is plain LaTeX math that typesets @. TeX ignores `{}`, so it doesn't change the output. Only the start of a block matters: `$x@y$` needs nothing.
 - **Postfix input:** math is written in RPN, so the author never types grouping parentheses. The typesetter adds any visual parentheses the output needs, based on operator precedence.
 - **Operator spelling:** arithmetic uses standard math symbols (`+ - * / ^ =`), even where they need Shift. Named operations are short words. That covers functions (`sqrt`, `exp`), notation like `ssc` (subscript) and `vec`, and `sum`. Avoid `\`; it's too far from the home row.
+- **`*` prints side by side:** `a b *` → ab, like a glued product. `\times` is kept for the cross product.
 - **Strict RPN for exponents:** `a b + 2 ^`, not `^2` as one token.
 - **No glued minus:** `-b` is not a token. `-` always means binary subtraction.
 - **Negation is `neg`:** `b neg` → −b. One symbol can't take two different numbers of arguments in RPN, so negation needs its own spelling.
@@ -80,6 +81,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 ## Wanted, spelling not yet chosen
 
+- Cross product a × b (`\times`). Dot product a · b (`\cdot`)?
 - Commutators: [A, B] (and anticommutators?)
 - Bras ⟨ψ|, kets |ψ⟩, and probably brakets ⟨φ|ψ⟩
 - `vec`: how many arguments? A unary decoration (v → v⃗), or something else?
@@ -91,7 +93,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
 5. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`?
-6. **How `*` looks.** The tree keeps an explicit `a b *` apart from a glued `ab`. Should `*` print as juxtaposition (ab), `\cdot` or `\times`?
+6. **When side-by-side `*` is ambiguous.** `2 3 *` would print as 23, and `a 2 *` as a2. Use `\cdot` only when a number would touch the factor before it, always, or make it the author's problem?
 7. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
 8. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 9. **Included files.** Does the tool follow `\input`/`\include` into the author's other `.rtex` files, or convert every `.rtex` in the project? (It never reads packages.) How does the wrapped command behave on the first run, before `paper.tex` exists? That needs a prototype.
