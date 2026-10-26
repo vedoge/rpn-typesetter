@@ -118,16 +118,18 @@ function body(node: Node): string {
   return child(node, rank(node) <= Rank.additive);
 }
 
+/** Writes `a ∘ b` for an infix operator of rank `r`, with `before` (such as `&`) just before the symbol. */
+function infix(operator: string, a: Node, b: Node, r: number, before = ""): string {
+  const left = child(a, rank(a) < r);
+  const negOnRight = b.kind === "apply" && b.operator === "neg" && (operator === "+" || operator === "-");
+  const right = child(b, rank(b) < r || (rank(b) === r && !associative.has(operator)) || negOnRight);
+  return `${left} ${before}${infixLatex[operator]} ${right}`;
+}
+
 function emitApply(operator: string, args: readonly Node[], parent: Node): string {
   const [a, b, c, d] = args;
-  const r = rank(parent);
 
-  if (operator in infixLatex) {
-    const left = child(a!, rank(a!) < r);
-    const negOnRight = b!.kind === "apply" && b!.operator === "neg" && (operator === "+" || operator === "-");
-    const right = child(b!, rank(b!) < r || (rank(b!) === r && !associative.has(operator)) || negOnRight);
-    return `${left} ${infixLatex[operator]} ${right}`;
-  }
+  if (operator in infixLatex) return infix(operator, a!, b!, rank(parent));
 
   if (functions.has(operator)) return `\\${operator} ${argument(a!)}`;
 
@@ -138,8 +140,15 @@ function emitApply(operator: string, args: readonly Node[], parent: Node): strin
       return `\\frac{${emitNode(a!)}}{${emitNode(b!)}}`;
     case "^":
       return `${child(a!, !isAtom(a!) && !isSubscriptedAtom(a!))}^{${emitNode(b!)}}`;
-    case "ssc":
-      return `${child(a!, !isAtom(a!))}_{${emitNode(b!)}}`;
+    case "ssc": {
+      // Subscripts are notational (tensor indices), so the base never gets
+      // visible brackets. A base that isn't an atom or a power goes in an
+      // invisible group, so x_i_j doesn't become a double-subscript error. A
+      // power whose own base is subscripted (x_i^2) is grouped for the same reason.
+      const power = a!.kind === "apply" && a!.operator === "^" && !(a!.args[0]!.kind === "apply" && a!.args[0]!.operator === "ssc");
+      const base = isAtom(a!) || power ? emitNode(a!) : `{${emitNode(a!)}}`;
+      return `${base}_{${emitNode(b!)}}`;
+    }
     case "neg":
       return `-${child(a!, rank(a!) <= Rank.additive)}`;
     case "sqrt":
@@ -192,9 +201,14 @@ export function emitNode(node: Node): string {
   }
 }
 
-/** Writes one equation, with its label and \notag. */
-export function emitEquation(equation: Equation): string {
-  let out = emitNode(equation.body);
+/**
+ * Writes one equation, with its label and \notag. With `align`, a relation at
+ * the root gets `&` just before its symbol, for aligned displays.
+ */
+export function emitEquation(equation: Equation, options: { align?: boolean } = {}): string {
+  const { body } = equation;
+  const aligned = options.align === true && body.kind === "apply" && body.operator === "=";
+  let out = aligned ? infix(body.operator, body.args[0]!, body.args[1]!, rank(body), "&") : emitNode(body);
   if (equation.label !== undefined) out += ` \\label{${equation.label}}`;
   if (equation.notag) out += " \\notag";
   return out;
@@ -210,5 +224,5 @@ export interface EmitResult {
 /** Lexes, parses and emits one RPN block. */
 export function toLatex(source: string): EmitResult {
   const { equations, errors, warnings } = parse(source);
-  return { equations: equations.map(emitEquation), errors, warnings };
+  return { equations: equations.map((equation) => emitEquation(equation)), errors, warnings };
 }

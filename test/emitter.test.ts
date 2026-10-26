@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { toLatex } from "../src/emitter.js";
+import { emitEquation, toLatex } from "../src/emitter.js";
+import { parse } from "../src/parser.js";
 
 /** The LaTeX for a block that has exactly one equation and no problems. */
 function latex(source: string): string {
@@ -48,9 +49,19 @@ describe("emitter", () => {
       expect(latex("x1 2 ^")).toBe("x_{1}^{2}");
     });
 
-    it("brackets a base that is itself a power or subscript", () => {
+    it("brackets the base of a power that is itself a power", () => {
       expect(latex("a 2 ^ 3 ^")).toBe("(a^{2})^{3}");
-      expect(latex("x 2 ^ i ssc")).toBe("(x^{2})_{i}");
+    });
+
+    it("subscripts a power without brackets, tensor style", () => {
+      expect(latex("x 2 ^ i ssc")).toBe("x^{2}_{i}");
+      expect(latex("T a ^ b ssc")).toBe("T^{a}_{b}");
+    });
+
+    it("groups any other subscript base invisibly, never with brackets", () => {
+      expect(latex("x i ssc j ssc")).toBe("{x_{i}}_{j}");
+      expect(latex("a b + i ssc")).toBe("{a + b}_{i}");
+      expect(latex("x i ssc 2 ^ j ssc")).toBe("{x_{i}^{2}}_{j}");
     });
   });
 
@@ -156,6 +167,38 @@ describe("emitter", () => {
       const result = toLatex("a +");
       expect(result.equations).toEqual([]);
       expect(result.errors).toHaveLength(1);
+    });
+  });
+
+  describe("aligned equations", () => {
+    /** The LaTeX for a one-equation block, emitted with `align`. */
+    function aligned(source: string): string {
+      const result = parse(source);
+      expect(result.errors).toEqual([]);
+      expect(result.equations).toHaveLength(1);
+      return emitEquation(result.equations[0]!, { align: true });
+    }
+
+    it("puts & before the relation at the root", () => {
+      expect(aligned("a b =")).toBe("a &= b");
+      expect(aligned("E m c 2 ^ * =")).toBe("E &= m c^{2}");
+    });
+
+    it("brackets both sides exactly as without align", () => {
+      expect(aligned("a b or c d and =")).toBe("(a \\vee b) &= (c \\wedge d)");
+      expect(latex("a b or c d and =")).toBe("(a \\vee b) = (c \\wedge d)");
+      expect(aligned("a b = c =")).toBe("a = b &= c");
+      expect(aligned("a b c = =")).toBe("a &= (b = c)");
+    });
+
+    it("adds no & when the root isn't a relation", () => {
+      expect(aligned("a b +")).toBe("a + b");
+      expect(aligned("a b = c d = and")).toBe("a = b \\wedge c = d");
+    });
+
+    it("writes the label and \\notag after", () => {
+      expect(aligned("\\label{eq:e} E m c 2 ^ * =")).toBe("E &= m c^{2} \\label{eq:e}");
+      expect(aligned("a b = \\notag")).toBe("a &= b \\notag");
     });
   });
 });
