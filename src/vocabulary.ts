@@ -25,6 +25,13 @@ const values: Record<string, string> = {
   Gamma: "\\Gamma", Delta: "\\Delta", Theta: "\\Theta", Lambda: "\\Lambda",
   Xi: "\\Xi", Pi: "\\Pi", Sigma: "\\Sigma", Upsilon: "\\Upsilon",
   Phi: "\\Phi", Psi: "\\Psi", Omega: "\\Omega",
+  // Greek letters LaTeX has no command for, because they look like Latin
+  // ones. Capitals are upright, matching \Gamma and the rest.
+  Alpha: "\\mathrm{A}", Beta: "\\mathrm{B}", Epsilon: "\\mathrm{E}",
+  Zeta: "\\mathrm{Z}", Eta: "\\mathrm{H}", Iota: "\\mathrm{I}",
+  Kappa: "\\mathrm{K}", Mu: "\\mathrm{M}", Nu: "\\mathrm{N}",
+  Omicron: "\\mathrm{O}", Rho: "\\mathrm{P}", Tau: "\\mathrm{T}",
+  Chi: "\\mathrm{X}", omicron: "o",
   // Other letters LaTeX has commands for.
   ell: "\\ell", hbar: "\\hbar", hslash: "\\hslash", imath: "\\imath",
   jmath: "\\jmath", aleph: "\\aleph", beth: "\\beth", gimel: "\\gimel",
@@ -37,9 +44,16 @@ const values: Record<string, string> = {
 };
 
 const operators = [
-  "neg", "sqrt", "exp", "sin", "ssc", "sum", "ser", "int",
+  "neg", "sqrt", "ssc", "sum", "ser", "int", "vec",
   "and", "or", "exists", "forall",
   "br",
+  // Variadic: these take everything above the nearest mark.
+  "mat", "cases", "col",
+  // Functions LaTeX has a command for (\sin, \log, \lim, …).
+  "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc",
+  "deg", "det", "dim", "exp", "gcd", "hom", "inf", "ker", "lg", "lim",
+  "liminf", "limsup", "ln", "log", "max", "min", "Pr", "sec", "sin", "sinh",
+  "sup", "tan", "tanh",
 ];
 
 export const vocabulary: ReadonlyMap<string, Word> = new Map<string, Word>([

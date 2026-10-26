@@ -12,7 +12,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Not LuaLaTeX:** running inside TeX through Lua was considered and rejected. It would avoid the extra step, but it would mean writing Lua instead of TypeScript, debugging inside a TeX run, and supporting only LuaLaTeX.
 - **The RPN marker is `@`:** a block is RPN when `@` comes right after LaTeX's own math delimiter: `$@ a b +$`, `\[@ … \]`. Unmarked math stays plain LaTeX. (`;` was the other candidate; it went to the line separator instead.)
 - **The marker works in every kind of math:** inline (`$…$`, `\(…\)`), display (`\[…\]`), every math environment (`equation`, `align`, `gather`, `multline`, …), and `\ensuremath{@ …}`.
-- **`;` is the line separator:** it separates rows inside a mark, e.g. `[ a b ; c d mat`, and the same shape works for `cases`.
+- **`;` is the line separator:** inside a mark it separates rows, e.g. `[ a b ; c d mat`, and the same shape works for `cases`. At the top level, with no mark open, it separates equations in one display: each is its own expression, numbered and labelled on its own. A forgotten variadic operator leaves a mark open, which is invalid RPN, so a `;` can't silently change meaning.
 - **Line breaks: the tool chooses, the author overrides.** By default the tool breaks long formulas sensibly. The author adds a break by hand only when the default is wrong.
 - **Manual breaks use `br`:** it comes right after an operator and means "break before this operator's right operand". `a b + br` → a ⏎ + b, and `a b = c = br` → a = b ⏎ = c. `br` is a reserved word, so a product b·r has to be written `b r *`.
 - **Inline math:** the tool adds break hints at top-level operators (`=`, `+`, …) and TeX chooses where to break. The emitter avoids braces that would block a break.
@@ -33,6 +33,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **No glued minus:** `-b` is not a token. `-` always means binary subtraction.
 - **Negation is `neg`:** `b neg` → −b. One symbol can't take two different numbers of arguments in RPN, so negation needs its own spelling.
 - **Tokens are separated by whitespace:** `4ac -`, not `4ac-`.
+- **Glued digits after letters are a subscript:** `x1` → x₁, `x12` → x₁₂.
 - **Glued letters are a product:** `ab` → a·b, `4ac` → 4·a·c. The lexer joins them before the stack sees them, so this is always safe.
 - **Reserved words win:** if a run of letters matches a reserved word (`neg`, `exp`, `sum`, …), it's that word, not a product. A product that happens to spell a reserved word has to be written with spaces and `*`.
 - **Leftover stack items:** anything left on the stack at the end is juxtaposed (`2 x 2 ^` → 2x²), and the tool **emits a warning**. Strictly this isn't valid RPN, but it's the convenient default. In the middle of an expression, multiplication is never implied, because values sitting next to each other are waiting for an operator. `*` must be written there.
@@ -44,11 +45,16 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Greek letters use the LaTeX names without the backslash:** `alpha`, `pi`, `Gamma`. They're reserved words, so glued letters that spell one (`mu`, `pi`, `eta`) mean the Greek letter, not a product.
 - **Every letter LaTeX has a command for works the same way:** `ell` → ℓ, `hbar` → ℏ, `aleph` → ℵ, `Re` → ℜ, `wp` → ℘. These are reserved words too, so a product that spells one (`Re`, `wp`) needs spaces and `*`.
 - **Symbols by name:** most symbols with a LaTeX command can be reserved names, even though each one takes a glued product away (`in` would mean ∈, not i·n). The vocabulary will be revised after testing if it doesn't fit.
+- **Uppercase Greek letters LaTeX has no command for are reserved too:** `Alpha`, `Beta`, `Eta`, `Mu`, … and `omicron`, so the whole Greek alphabet is available by name.
+- **LaTeX's named functions are reserved operators:** `sin`, `cos`, `tan`, `log`, `ln`, `exp`, `lim`, `max`, `min`, `det`, … (every function LaTeX has a command for). So are the variadic `mat` and `cases`.
 - **Starting vocabulary:** the whole Greek alphabet; `reals` → ℝ, `complex` → ℂ, `naturals` → ℕ, `integers` → ℤ, `rationals` → ℚ; `and` → ∧ and `or` → ∨ (binary operators); `exists` and `forall`.
 - **Quantifiers are operators:** `exists` and `forall` take one argument, the thing they quantify. `x exists` → ∃x, `x forall` → ∀x.
 - **Escape hatch: raw value.** A token starting with `\` is copied into the output as-is and pushed as one value: `\mathcal{F} x ssc` → 𝓕ₓ. The tool can't see inside it, so it's an **atom** and never gets brackets. If the raw text needs brackets (`\alpha+\beta`), the author writes them.
 - **Escape hatch: raw operator.** `\cmd/N` pops N values and emits `\cmd{…}{…}`: `a b \overset/2` → `\overset{a}{b}`.
-- **Upright text:** a quoted string becomes `\text{…}`: `"if "` → `\text{if }`. Inside quotes, the lexer keeps spaces instead of ending the token.
+- **Upright text:** a quoted string becomes `\text{…}`: `"if "` → `\text{if }`. Inside quotes, the lexer keeps spaces instead of ending the token. A backslash escapes a quote: `"say \"hi\""`.
+- **Spaces always end a raw LaTeX token,** even inside braces, so `\operatorname{arg max}` splits in two.
+- **Letters are ASCII only:** `α` typed directly is an error; write `alpha`.
+- **Decimals:** `3.14` is one number. `3.` and `.5` are errors.
 - **Subscript is `ssc`:** binary. `x i ssc` → x_i.
 - **Sums:** `sum` takes 2 arguments (index, summand) → ∑ₙ aₙ. `ser` takes 3 (lower bound, upper bound, summand) → ∑ₙ₌₁^∞. **Bounds come first:** `n 1 = oo 1 n 2 ^ / ser`. There's no bare ∑ without an index.
 - **Definite integrals:** `int` takes 4 arguments: lower bound, upper bound, integrand, variable. `0 pi x sin x int` → ∫₀^π sin x dx. You type the variable (`x`), and `int` writes the d and its spacing.
@@ -59,14 +65,12 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 | Idea | Suggestion | Trade-off to weigh |
 |---|---|---|
+| Upright capitals for borrowed Greek | `Alpha` → `\mathrm{A}`, `Eta` → `\mathrm{H}`, …; `omicron` → `o` | Matches LaTeX's own capitals (`\Gamma` is upright). Plain `A` would come out italic. |
+| Backslashes in quoted text | Only `\"` is an escape. Every other backslash is kept, so `"costs \$5"` works; `\\` is kept as a pair so it never escapes a quote | The lexer does this now. |
+| Glued subscript details | The subscript goes on the last letter (`2ab1` → 2·a·b₁), works on reserved values (`pi1` → π₁), and must end the token (`x1y` is an error). An operator can't take one (`sqrt2` is an error) | The lexer does this now. |
+| `col` | Column vector, variadic: `[ a b c col` | Spelling came from an example, not a decision. |
+| Prime | `f'` glued | Not built yet. |
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
-| Decimal numbers | `3.14` is one number; `3.` and `.5` are errors | The lexer does this now. |
-| Quotes inside text | None: a string ends at the next `"`, so text can't contain `"` | The lexer does this now. An escape (`\"`) could come later. |
-| Spaces inside raw LaTeX | Whitespace ends a raw token even inside braces, so `\operatorname{arg max}` splits in two | The lexer does this now. The alternative is to keep reading until the braces balance. |
-| Letters are ASCII only | `a`–`z`, `A`–`Z`; anything else (`α`, `é`) is an unknown symbol | The lexer does this now. |
-| Uppercase Greek with no LaTeX command | Not reserved: `Alpha`, `Beta`, … are products of letters; write `A` | "The whole Greek alphabet" might mean these too (`Alpha` → A). `omicron` → o likewise. |
-| `sin` is reserved | Included because the `int` example uses it | Other functions (`cos`, `log`, `lim`, …) wait on open question 2. `mat` and `cases` aren't reserved yet either, so they lex as products. |
-| More glued tokens | `x1` (subscript), `f'` (prime) | With glued letters meaning a product, does `x1` mean x₁ or x·1? |
 
 ## Wanted, spelling not yet chosen
 
@@ -77,10 +81,10 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 ## Open questions
 
 1. **Remaining vocabulary details.** Does `oo` stay as a short form of ∞? ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
-2. **What else is a named word?** `lim`, `mat`, `cases`, bold, hat?
+2. **What else is a named word, and arities.** Bold, hat? How many arguments do `lim`, `max`, `min`, `sup`, `inf`, `gcd` and `vec` take? `lim` needs its approach (x→0); `max`/`min` might be variadic.
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Inserting parentheses.** Which node types are atoms (never wrapped)? When does a function argument get parentheses (`sin x` vs `sin(x+y)`)?
-5. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`? What separates separate equations in one display: `;` at the top level (outside any mark), or a marker on each line?
+5. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`?
 6. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
 7. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 8. **Included files.** Does the tool follow `\input`/`\include` into the author's other `.rtex` files, or convert every `.rtex` in the project? (It never reads packages.) How does the wrapped command behave on the first run, before `paper.tex` exists? That needs a prototype.

@@ -117,8 +117,56 @@ describe("lexer", () => {
       expect(errors("2sqrt")).toEqual(["`2` is glued to the operator `sqrt`; did you mean `2 sqrt`?"]);
     });
 
-    it("rejects digits after letters, which aren't defined yet", () => {
-      expect(errors("x1")).toEqual(["digits after letters (`x1`) aren't defined yet: subscript or product?"]);
+    it("reserves uppercase Greek letters LaTeX has no command for", () => {
+      expect(shapes("Alpha omicron")).toEqual([
+        { kind: "word", name: "Alpha" },
+        { kind: "word", name: "omicron" },
+      ]);
+    });
+
+    it("reserves functions and variadic operators", () => {
+      expect(shapes("cos lim mat cases")).toEqual([
+        { kind: "word", name: "cos" },
+        { kind: "word", name: "lim" },
+        { kind: "word", name: "mat" },
+        { kind: "word", name: "cases" },
+      ]);
+    });
+  });
+
+  describe("glued subscripts", () => {
+    it("reads digits after a letter as its subscript", () => {
+      expect(shapes("x1 x12")).toEqual([
+        { kind: "variable", name: "x", subscript: "1" },
+        { kind: "variable", name: "x", subscript: "12" },
+      ]);
+    });
+
+    it("puts the subscript on the last letter of a product", () => {
+      expect(shapes("2ab1")).toEqual([
+        {
+          kind: "product",
+          factors: [
+            { kind: "number", text: "2" },
+            { kind: "variable", name: "a" },
+            { kind: "variable", name: "b", subscript: "1" },
+          ],
+        },
+      ]);
+    });
+
+    it("subscripts a reserved value", () => {
+      expect(shapes("pi1")).toEqual([{ kind: "word", name: "pi", subscript: "1" }]);
+    });
+
+    it("rejects a subscript on an operator", () => {
+      expect(errors("sqrt2")).toEqual(["the operator `sqrt` can't take a subscript; did you mean `2 sqrt`?"]);
+    });
+
+    it("rejects letters after a glued subscript", () => {
+      expect(errors("x1y")).toEqual([
+        "`x1y`: glued digits after letters are a subscript and must end the token (`x1` → x₁)",
+      ]);
     });
   });
 
@@ -164,6 +212,17 @@ describe("lexer", () => {
       ]);
     });
 
+    it("reads \\\" as a quote inside the text", () => {
+      expect(shapes('"say \\"hi\\""')).toEqual([{ kind: "text", text: 'say "hi"' }]);
+    });
+
+    it("keeps other backslashes, so LaTeX works inside text", () => {
+      expect(shapes('"costs \\$5" "a\\\\"')).toEqual([
+        { kind: "text", text: "costs \\$5" },
+        { kind: "text", text: "a\\\\" },
+      ]);
+    });
+
     it("rejects a string with no closing quote", () => {
       expect(errors('x "if')).toEqual(['unterminated string: missing the closing "']);
     });
@@ -174,10 +233,10 @@ describe("lexer", () => {
   });
 
   it("reports every bad chunk and keeps lexing", () => {
-    const result = lex("x1 a 2sqrt b");
+    const result = lex("x1y a 2sqrt b");
     expect(result.errors.map(({ start, end }) => [start, end])).toEqual([
-      [0, 2],
-      [5, 10],
+      [0, 3],
+      [6, 11],
     ]);
     expect(result.tokens.map((t) => ("name" in t ? t.name : t.kind))).toEqual(["a", "b"]);
   });
