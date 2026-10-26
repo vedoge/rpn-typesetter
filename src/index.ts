@@ -4,6 +4,8 @@ export type { Diagnostic, Factor, LexResult, Span, SymbolChar, Token } from "./l
 export { emitEquation, emitNode, toLatex } from "./emitter.js";
 export type { EmitResult } from "./emitter.js";
 export { parse, parseTokens } from "./parser.js";
+export { convert, locate, marker } from "./scanner.js";
+export type { ConvertResult } from "./scanner.js";
 export type { Equation, Node, ParseResult } from "./parser.js";
 export { functions, vocabulary } from "./vocabulary.js";
 export type { Arity, Word } from "./vocabulary.js";

@@ -23,7 +23,7 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 
 ## Current state
 
-The lexer, parser and emitter are written and tested: one RPN block goes in, LaTeX comes out. The outer scanner that finds `$@ … $` in a `.rtex` file, line breaking, the `latexmk` hookup and the command-line tool don't exist yet.
+The tool converts a whole `.rtex` file to `.tex`: `npm run build`, then `node dist/cli.js paper.rtex` (installed as the `rpn-typesetter` command). Line breaking (`br` and measured breaks) and the `.latexmkrc` hookup don't exist yet.
 
 - `npm install`: install dev dependencies (TypeScript, Vitest).
 - `npm test`: run the tests once (Vitest). `npm run test:watch` reruns on change.
@@ -34,11 +34,14 @@ Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.te
 
 ## Architecture
 
-The pipeline is lexer → parser → emitter, run on the text of one RPN block.
+The scanner finds RPN blocks in a document; each block goes through lexer → parser → emitter.
+
+- `src/cli.ts`: `main(args)` reads `paper.rtex`, prints diagnostics as `file:line:col: error: …`, and writes `paper.tex` with a guard line on top. It refuses to overwrite a `.tex` without the guard, and writes nothing (exit 1) if any block is invalid.
+- `src/scanner.ts`: `convert(document)` finds math regions (`$…$`, `$$…$$`, `\(…\)`, `\[…\]`, `\ensuremath{…}`, math environments), skipping comments, `\$`, `\verb` and verbatim environments. A region whose first non-space character is `@` is RPN: its text is parsed and emitted, and the LaTeX replaces it. It also adds `\usepackage{amsmath,amssymb}` after `\documentclass` unless the author loads them. Diagnostic offsets are into the whole document; `locate` turns them into line and column.
 
 - `src/lexer.ts`: `lex(source)` splits one RPN block into tokens (number, variable, reserved word, glued product, symbol, raw LaTeX, raw operator, quoted text), each with its `start`/`end` offsets. It doesn't stop at the first error; it returns every problem in `errors`.
 - `src/parser.ts`: `parse(source)` lexes, then runs the stack over the tokens and builds a tree (`Node`) for each equation (`;` at the top level splits equations). Each operator becomes an `apply` node holding its arguments in reading order. Glued subscripts become `ssc` nodes, `br` sets `breakBefore`, variadic operators hold `rows`, and leftover values become a `juxtapose` node plus a warning. Labels and `\notag` attach to the `Equation`. It stops at the first error in a block.
-- `src/emitter.ts`: `toLatex(source)` runs the whole pipeline on one block and returns LaTeX per equation. `emitNode` walks the tree; most of its work is the bracket rule, driven by `rank()` (how tightly each node binds) plus the layout rules for boxed arguments. It ignores `breakBefore` for now: placing `\\` and `&` needs to know the environment, which the outer scanner will.
+- `src/emitter.ts`: `toLatex(source)` runs the whole pipeline on one block and returns LaTeX per equation. `emitNode` walks the tree; most of its work is the bracket rule, driven by `rank()` (how tightly each node binds) plus the layout rules for boxed arguments. `emitEquation(eq, { align })` puts `&` before a root relation. It ignores `breakBefore` for now.
 - `src/vocabulary.ts`: the reserved words. Values carry their LaTeX; operators carry their arity (a number, `"variadic"`, `"break"` for `br`, or `"undecided"`, which the parser rejects).
 
 Tests in `test/parser.test.ts` print trees compactly, e.g. `(+ a (- b c))`, so expected trees are easy to read.

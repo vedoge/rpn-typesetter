@@ -4,6 +4,9 @@
   "private": true,
   "description": "LaTeX preprocessor: RPN math in, plain LaTeX out",
   "type": "module",
+  "bin": {
+    "rpn-typesetter": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc",
