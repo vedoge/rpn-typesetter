@@ -5,7 +5,7 @@
 //   "b neg b 2 ^ 4ac -"  →  variable b, word neg, variable b, number 2,
 //                           symbol ^, product 4·a·c, symbol -
 
-import { vocabulary } from "./vocabulary.js";
+import { symbols, vocabulary } from "./vocabulary.js";
 
 /** Where something sits in the RPN text: offset of its first character, and one past its last. */
 export interface Span {
@@ -13,7 +13,8 @@ export interface Span {
   readonly end: number;
 }
 
-export type SymbolChar = "+" | "-" | "*" | "/" | "^" | "=" | "[" | ";";
+/** An arithmetic symbol, a mark `[`, a row separator `;`, or an ASCII relation or arrow (`<=`, `=>`). */
+export type SymbolText = string;
 
 /**
  * One piece of a glued product: `4ac` has the factors 4, a and c. Digits
@@ -28,7 +29,7 @@ export type Token = Span &
   (
     | Factor // `2`, `x`, or a reserved word such as `pi` or `sqrt`
     | { readonly kind: "product"; readonly factors: readonly Factor[] } // `4ac`, `2pi`
-    | { readonly kind: "symbol"; readonly symbol: SymbolChar } // `+`, `[`, `;`, …
+    | { readonly kind: "symbol"; readonly symbol: SymbolText } // `+`, `[`, `;`, `<=`, …
     | { readonly kind: "raw"; readonly latex: string } // `\mathcal{F}`
     | { readonly kind: "rawOperator"; readonly command: string; readonly arity: number } // `\overset/2`
     | { readonly kind: "text"; readonly text: string } // `"if "`
@@ -46,7 +47,8 @@ export interface LexResult {
   readonly errors: Diagnostic[];
 }
 
-const symbols: ReadonlySet<string> = new Set<SymbolChar>(["+", "-", "*", "/", "^", "=", "[", ";"]);
+/** Every character that appears in a symbol, for spotting tokens glued together like `a<b`. */
+const symbolCharacters: ReadonlySet<string> = new Set([...symbols].join(""));
 
 const isSpace = (c: string): boolean => /\s/.test(c);
 
@@ -143,7 +145,7 @@ function classify(text: string, span: Span): Token | Diagnostic {
     return { kind: "raw", latex: text, ...span };
   }
 
-  if (symbols.has(text)) return { kind: "symbol", symbol: text as SymbolChar, ...span };
+  if (symbols.has(text)) return { kind: "symbol", symbol: text, ...span };
 
   // An optional number, then optional letters, then an optional subscript:
   // `2`, `x`, `4ac`, `2pi`, `sqrt`, `x1`, `2x12`.
@@ -178,7 +180,7 @@ function classify(text: string, span: Span): Token | Diagnostic {
   if (/[A-Za-z]\d/.test(text)) {
     return fail(`\`${text}\`: glued digits after letters are a subscript and must end the token (\`x1\` → x₁)`);
   }
-  if (/[A-Za-z0-9]/.test(text) && [...text].some((c) => symbols.has(c))) {
+  if (/[A-Za-z0-9]/.test(text) && [...text].some((c) => symbolCharacters.has(c))) {
     return fail(`\`${text}\` needs spaces: tokens are separated by whitespace`);
   }
   return fail(`unknown symbol \`${text}\``);

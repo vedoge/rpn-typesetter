@@ -55,6 +55,30 @@ export const functions: ReadonlySet<string> = new Set([
   "sinh", "tan", "tanh",
 ]);
 
+/**
+ * Relations, all binding like `=`, and the LaTeX each writes. Common ones
+ * have an ASCII spelling; every one has a name.
+ */
+export const relations: ReadonlyMap<string, string> = new Map([
+  ["=", "="], ["<", "<"], [">", ">"],
+  ["<=", "\\leq"], [">=", "\\geq"], ["!=", "\\neq"], ["<<", "\\ll"], [">>", "\\gg"], ["->", "\\to"],
+  ["leq", "\\leq"], ["geq", "\\geq"], ["neq", "\\neq"], ["ll", "\\ll"], ["gg", "\\gg"], ["to", "\\to"],
+  ["approx", "\\approx"], ["equiv", "\\equiv"], ["sim", "\\sim"], ["propto", "\\propto"],
+  ["in", "\\in"], ["notin", "\\notin"], ["subset", "\\subset"], ["subseteq", "\\subseteq"],
+]);
+
+/** Logical arrows. They bind more loosely than `and` and `or`; `iff` most loosely of all. */
+export const arrows: ReadonlyMap<string, string> = new Map([
+  ["=>", "\\implies"], ["implies", "\\implies"], ["impliedby", "\\impliedby"],
+  ["<=>", "\\iff"], ["iff", "\\iff"],
+]);
+
+/** Symbols the lexer reads: arithmetic, factorial, marks, row separators, and the ASCII relations and arrows. */
+export const symbols: ReadonlySet<string> = new Set([
+  "+", "-", "*", "/", "^", "!", "[", ";",
+  ...[...relations.keys(), ...arrows.keys()].filter((name) => !/^[A-Za-z]/.test(name)),
+]);
+
 // How many values each operator takes off the stack:
 // - a number: exactly that many.
 // - "variadic": everything above the nearest mark `[`.
@@ -69,6 +93,9 @@ const operators: Record<string, Arity> = {
   br: "break",
   mat: "variadic", cases: "variadic", col: "variadic",
   vec: "undecided",
+  ...Object.fromEntries(
+    [...relations.keys(), ...arrows.keys()].filter((name) => /^[A-Za-z]/.test(name)).map((name) => [name, 2]),
+  ),
   ...Object.fromEntries([...functions].map((name) => [name, 1])),
   gcd: "undecided", hom: "undecided", inf: "undecided", lim: "undecided",
   liminf: "undecided", limsup: "undecided", max: "undecided",

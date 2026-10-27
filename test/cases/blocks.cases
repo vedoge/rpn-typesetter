@@ -196,6 +196,120 @@ latex: \exists x
 rpn: x forall
 latex: \forall x
 
+# Relations
+
+## ASCII relations
+rpn: a b < c d > and
+latex: a < b \wedge c > d
+
+## <= is \leq, >= is \geq, != is \neq
+rpn: a b <= c d >= and e f != and
+latex: a \leq b \wedge c \geq d \wedge e \neq f
+
+## much less and much greater
+rpn: a b << c d >> and
+latex: a \ll b \wedge c \gg d
+
+## -> is \to
+rpn: x 0 ->
+latex: x \to 0
+
+## relations by name
+rpn: a b leq c d approx and e f equiv and
+latex: a \leq b \wedge c \approx d \wedge e \equiv f
+
+## more relations by name
+rpn: a b sim c d propto and
+latex: a \sim b \wedge c \propto d
+
+## set relations
+rpn: x reals in A B subseteq and
+latex: x \in \mathbb{R} \wedge A \subseteq B
+
+## not in, subset
+rpn: x A notin A B subset and
+latex: x \notin A \wedge A \subset B
+
+## a chain of mixed relations
+rpn: 0 x < 1 <=
+latex: 0 < x \leq 1
+
+## relations bind looser than arithmetic
+rpn: a b + c d * <=
+latex: a + b \leq c d
+
+## in is a reserved word, not a product
+rpn: in
+error: `in` needs 2 values, but none is available
+
+# Logical arrows
+
+## => is \implies
+rpn: x 0 > x 2 ^ 0 > =>
+latex: x > 0 \implies x^{2} > 0
+
+## <=> is \iff
+rpn: p q <=>
+latex: p \iff q
+
+## arrows by name
+rpn: p q implies q p impliedby iff
+latex: p \implies q \iff q \impliedby p
+
+## arrows bind looser than and and or
+rpn: p q and r or s =>
+latex: p \wedge q \vee r \implies s
+
+## iff binds looser than implies
+rpn: p q => r <=>
+latex: p \implies q \iff r
+
+## an arrow under and gets brackets
+rpn: p q => r and
+latex: (p \implies q) \wedge r
+
+## an arrow chain is bracketed on the left
+rpn: p q => r =>
+latex: (p \implies q) \implies r
+
+## an arrow chain is bracketed on the right
+rpn: p q r => =>
+latex: p \implies (q \implies r)
+
+# Factorial
+
+## factorial
+rpn: n !
+latex: n!
+
+## factorial of a sum gets brackets
+rpn: n 1 + !
+latex: (n + 1)!
+
+## factorial of a product gets brackets
+rpn: 2n !
+latex: (2 n)!
+
+## factorial of a subscripted atom
+rpn: n1 !
+latex: n_{1}!
+
+## factorial of a factorial
+rpn: n ! !
+latex: (n!)!
+
+## a power of a factorial
+rpn: n ! 2 ^
+latex: (n!)^{2}
+
+## factorials in a fraction
+rpn: n ! k ! n k - ! * /
+latex: \frac{n!}{k! (n - k)!}
+
+## a factorial after a number gets \cdot
+rpn: 2 n ! *
+latex: 2 n!
+
 # Sums and integrals
 
 ## a series
@@ -302,6 +416,36 @@ layout: aligned
 rpn: a b +
 latex: a + b
 
+## & goes before any relation
+layout: aligned
+rpn: f x g * <=
+latex: f &\leq x g
+
+## a chain of mixed relations aligns at its first
+layout: aligned
+rpn: a b <= c <
+latex: a &\leq b < c
+
+## an arrow at the root is where it aligns
+layout: aligned
+rpn: a b = c d = =>
+latex: a = b &\implies c = d
+
+## br before a relation starts its line with &
+layout: aligned
+rpn: x a <= b < br
+latex: x &\leq a \notag \\ &< b
+
+## br before an arrow starts its line with &
+layout: aligned
+rpn: a b = c d = => br
+latex: a = b \notag \\ &\implies c = d
+
+## an arrow chain aligns at its root, outside the brackets
+layout: aligned
+rpn: p q => r =>
+latex: (p \implies q) &\implies r
+
 ## no & when the root is a logical operator
 layout: aligned
 rpn: a b = c d = and
@@ -392,8 +536,12 @@ rpn: 4ac-
 error: `4ac-` needs spaces: tokens are separated by whitespace
 
 ## a symbol not in the language
-rpn: <=
-error: unknown symbol `<=`
+rpn: =<
+error: unknown symbol `=<`
+
+## a relation glued to its operands
+rpn: a<b
+error: `a<b` needs spaces: tokens are separated by whitespace
 
 ## a label split by a space
 rpn: \label{eq: energy}
@@ -453,15 +601,15 @@ error: `+` needs 2 values, but only 1 is available in this row
 
 ## br after a value
 rpn: a br
-error: `br` must come right after an operator written between its operands (+ - * = and or)
+error: `br` must come right after an operator written between its operands, such as + or =
 
 ## br after a power
 rpn: a b ^ br
-error: `br` must come right after an operator written between its operands (+ - * = and or)
+error: `br` must come right after an operator written between its operands, such as + or =
 
 ## br not right after its operator
 rpn: a b + c br
-error: `br` must come right after an operator written between its operands (+ - * = and or)
+error: `br` must come right after an operator written between its operands, such as + or =
 
 ## a second label on one equation
 rpn: \label{a} x \label{b}

@@ -13,7 +13,7 @@
 // brackets go, is the emitter's job.
 
 import { lex, type Diagnostic, type Factor, type Span, type Token } from "./lexer.js";
-import { vocabulary, type Arity } from "./vocabulary.js";
+import { arrows, relations, vocabulary, type Arity } from "./vocabulary.js";
 
 export type Node = Span &
   (
@@ -54,11 +54,11 @@ export function parse(source: string): ParseResult {
   return parseTokens(tokens, { start: source.length, end: source.length });
 }
 
-/** Arithmetic symbols all take two values. */
-const symbolArity = 2;
+/** Symbols take two values, except factorial `!`, which takes one. */
+const symbolArity = (symbol: string): number => (symbol === "!" ? 1 : 2);
 
 /** Operators written between their operands, the only ones `br` can follow. */
-const infix: ReadonlySet<string> = new Set(["+", "-", "*", "=", "and", "or"]);
+const infix: ReadonlySet<string> = new Set(["+", "-", "*", "and", "or", ...relations.keys(), ...arrows.keys()]);
 
 /** What can sit on the stack while parsing. */
 type Item =
@@ -140,7 +140,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
     const node = top?.kind === "value" ? top.node : undefined;
     const justApplied = node?.kind === "apply" && previous !== undefined && node.end === previous.end;
     if (!justApplied || !infix.has(node.operator)) {
-      fail(at, "`br` must come right after an operator written between its operands (+ - * = and or)");
+      fail(at, "`br` must come right after an operator written between its operands, such as + or =");
     }
     stack[stack.length - 1] = { kind: "value", node: { ...node, breakBefore: true } };
   }
@@ -222,7 +222,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
         case "symbol":
           if (token.symbol === "[") stack.push({ kind: "mark", span: token });
           else if (token.symbol === ";") stack.push({ kind: "row", span: token });
-          else apply(token.symbol, symbolArity, token);
+          else apply(token.symbol, symbolArity(token.symbol), token);
           break;
         case "label":
           if (label !== undefined) fail(token, `this equation already has the label \`${label}\``);

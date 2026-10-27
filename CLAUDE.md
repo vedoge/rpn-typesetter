@@ -17,7 +17,7 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 ## Design constraints already agreed
 
 - Two implementations kept in step: a TypeScript tool run before LaTeX (via `latexmk`, for pdfLaTeX) whose output is plain LaTeX, and later a LuaLaTeX package doing the same inside the TeX run. Only the TypeScript one exists so far.
-- Arithmetic uses standard symbols (`+ - * / ^ =`). Named operations are short words (`sqrt`, `neg`, `ssc`, `sum`, …). Avoid `\`.
+- Arithmetic uses standard symbols (`+ - * / ^ = !`); relations and arrows use ASCII where a common spelling exists (`< <= != -> => <=>`) and names otherwise (`approx`, `in`, `iff`). Named operations are short words (`sqrt`, `neg`, `ssc`, `sum`, …). Avoid `\`.
 - Tokens are separated by whitespace. Glued letters are a product; reserved words take priority over that.
 - Operators that take a variable number of arguments use a stack mark.
 
@@ -43,7 +43,7 @@ The scanner finds RPN blocks in a document; each block goes through lexer → pa
 - `src/lexer.ts`: `lex(source)` splits one RPN block into tokens (number, variable, reserved word, glued product, symbol, raw LaTeX, raw operator, quoted text), each with its `start`/`end` offsets. It doesn't stop at the first error; it returns every problem in `errors`.
 - `src/parser.ts`: `parse(source)` lexes, then runs the stack over the tokens and builds a tree (`Node`) for each equation (`;` at the top level splits equations). Each operator becomes an `apply` node holding its arguments in reading order. Glued subscripts become `ssc` nodes, `br` sets `breakBefore`, variadic operators hold `rows`, and leftover values become a `juxtapose` node plus a warning. Labels and `\notag` attach to the `Equation`. It stops at the first error in a block.
 - `src/emitter.ts`: `toLatex(source)` runs the whole pipeline on one block and returns LaTeX per equation. `emitNode` walks the tree; most of its work is the bracket rule, driven by `rank()` (how tightly each node binds) plus the layout rules for boxed arguments. `emitEquation(eq, layout)` writes an equation for a `Layout` (`single`, `multline`, `lines`, `aligned`): in `aligned` the first root relation gets `&`. A `br` break is written as a placeholder first; brackets around one split into `\left( … \right.` / `\left. … \right)` halves with a `\vphantom`, and the placeholder finally becomes `\\`, `\\ &` or `\\ &\qquad`. Problems such as a break inside a fraction throw `EmitError`.
-- `src/vocabulary.ts`: the reserved words. Values carry their LaTeX; operators carry their arity (a number, `"variadic"`, `"break"` for `br`, or `"undecided"`, which the parser rejects).
+- `src/vocabulary.ts`: the reserved words, plus the `relations` and `arrows` tables (spelling → LaTeX) and the lexer's `symbols`. Values carry their LaTeX; operators carry their arity (a number, `"variadic"`, `"break"` for `br`, or `"undecided"`, which the parser rejects).
 
 Tests:
 

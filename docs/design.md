@@ -34,7 +34,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **`*` prints side by side:** `a b *` → ab, like a glued product. `\times` is kept for the cross product.
 - **`\cdot` only when needed:** when a factor would start with a digit, it gets `\cdot` before it: `2 3 *` → 2·3, `a 2 *` → a·2, `x 2 ^ 3 *` → x²·3.
 - **Atoms never get brackets:** numbers, single letters, reserved values (Greek letters, `ell`, `reals`, …), raw LaTeX and quoted text.
-- **Ranks for the bracket rule,** loosest to tightest: `or` < `and` < relations < `+ - neg` < functions, sums, integrals, quantifiers < `* /` and glued products < `^ ssc` < atoms. Functions sit below products because they swallow what follows.
+- **Ranks for the bracket rule,** loosest to tightest: `iff` < `implies` < `or` < `and` < relations < `+ - neg` < functions, sums, integrals, quantifiers < `* /` and glued products < `^ ssc !` < atoms. Functions sit below products because they swallow what follows.
 - **Subscripted atoms count as atoms** as a function argument (`x1 sin` → sin x₁) and as the base of `^` (`x i ssc 2 ^` → x_i²).
 - **The base of `^` is bracketed unless it's an atom or a subscripted atom:** `a 2 ^ 3 ^` → (a²)³, `x sin 2 ^` → (sin x)².
 - **The base of `ssc` never gets brackets:** subscripts are notational (tensor indices, for example). `T mu ^ nu ssc` → T^μ_ν. A base that LaTeX can't take as is goes in an invisible group: `x i ssc j ssc` → `{x_i}_j`, `a b + i ssc` → `{a + b}_i`.
@@ -46,6 +46,9 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Errors:** every bad block is reported (one error per block) as `paper.rtex:12:8: error: …`, then the tool exits 1 without writing `paper.tex`.
 - **A function or sum used as a factor is bracketed only when something follows it:** `x sin y *` → (sin x)y, but `y x sin *` → y sin x.
 - **Function arguments are bracketed unless they're atoms:** `x sin` → sin x, `x y + sin` → sin(x + y).
+- **Relations: ASCII where a common spelling exists, names for all:** `<` `>` `<=` `>=` `!=` `<<` `>>` `->`, and the names `leq` `geq` `neq` `ll` `gg` `to` `approx` `equiv` `sim` `propto` `in` `notin` `subset` `subseteq`. `<=` is ≤ (`\leq`), not ⇐. All are binary and rank with `=`, so chains work: `0 x < 1 <=` → 0 < x ≤ 1.
+- **Logical arrows:** `=>`/`implies` (⇒, `\implies`), `impliedby` (⇐), `<=>`/`iff` (⇔, `\iff`). They bind more loosely than `and` and `or`, and `iff` most loosely of all: `p q and r or s =>` → p ∧ q ∨ r ⇒ s.
+- **Factorial is `!`,** a postfix operator taking one value: `n !` → n!. `!=` is a separate whole token, so the two never clash.
 - **Strict RPN for exponents:** `a b + 2 ^`, not `^2` as one token.
 - **No glued minus:** `-b` is not a token. `-` always means binary subtraction.
 - **Negation is `neg`:** `b neg` → −b. One symbol can't take two different numbers of arguments in RPN, so negation needs its own spelling.
@@ -101,6 +104,9 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Where `br` can't go | An error in a one-line region (`$…$`, `\[…\]`, `equation`), and inside a box (fraction, root, exponent, subscript, bounds, matrix entry) | The emitter does this now. A broken `equation` could instead be wrapped in `split` automatically. |
 | Numbering a broken equation | In `align` and `gather`, every line but the last gets `\notag`, so the equation is numbered once, on its last line (where its `\label` goes) | The emitter does this now. |
 | Breaking between factors | `a b * br` → a ⏎ b; with a digit, a ⏎ ·2 | The emitter does this now. |
+| Arrow chains get brackets on both sides | `p q => r =>` → (p ⇒ q) ⇒ r, and `p q r => =>` → p ⇒ (q ⇒ r). Readers disagree on which way p ⇒ q ⇒ r groups, so neither is left bare | The emitter does this now. |
+| Where `align` lines up | At the leftmost relation of a relation chain (`a &\leq b < c`); at the root for an arrow (`a = b &\implies c = d`), never inside its brackets. A `br` before any relation or arrow starts the line with `&` | The emitter does this now. |
+| Factorial brackets | The operand is bracketed unless it's an atom or a subscripted atom: (n + 1)!, (2n)!, (n!)!, but n₁! | The emitter does this now. |
 | Prime | `f'` glued | Not built yet. |
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
 
@@ -113,7 +119,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 ## Open questions
 
-1. **Remaining vocabulary details.** Does `oo` stay as a short form of ∞? ASCII spellings: `<`, `<=`, `!=`, `!`, `->`, and `_` alongside `ssc`?
+1. **Remaining vocabulary details.** Does `oo` stay as a short form of ∞? Is `_` allowed alongside `ssc`? More relations and arrows (`supset`, `mapsto`, `perp`, `not`/¬)?
 2. **What else is a named word, and arities.** Bold, hat? How many arguments do `lim`, `max`, `min`, `sup`, `inf`, `gcd` and `vec` take? `lim` needs its approach (x→0); `max`/`min` might be variadic.
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`?

@@ -11,7 +11,7 @@
 
 import { parse, type Equation, type Node } from "./parser.js";
 import type { Diagnostic, Span } from "./lexer.js";
-import { functions } from "./vocabulary.js";
+import { arrows, functions, relations } from "./vocabulary.js";
 
 /**
  * How the surrounding math lays out equations, which decides what a `br`
@@ -49,20 +49,27 @@ let alignAt: Node | undefined;
  * docs/design.md).
  */
 const Rank = {
-  or: 1,
-  and: 2,
-  relation: 3, // =
-  additive: 4, // + - neg
-  prefix: 5, // functions, sums, integrals, quantifiers: they swallow what follows
-  multiplicative: 6, // * / and glued products
-  script: 7, // ^ ssc
-  atom: 8, // never needs brackets
+  iff: 1, // <=> iff
+  implies: 2, // => implies impliedby
+  or: 3,
+  and: 4,
+  relation: 5, // = < <= in …
+  additive: 6, // + - neg
+  prefix: 7, // functions, sums, integrals, quantifiers: they swallow what follows
+  multiplicative: 8, // * / and glued products
+  script: 9, // ^ ssc !
+  atom: 10, // never needs brackets
 } as const;
 
 /** Operators where (a ∘ b) ∘ c = a ∘ (b ∘ c), so a right child of equal rank needs no brackets. */
 const associative: ReadonlySet<string> = new Set(["+", "*", "and", "or"]);
 
-const infixLatex: Readonly<Record<string, string>> = { "+": "+", "-": "-", "=": "=", and: "\\wedge", or: "\\vee" };
+const infixLatex: ReadonlyMap<string, string> = new Map([
+  ["+", "+"], ["-", "-"], ["and", "\\wedge"], ["or", "\\vee"], ...relations, ...arrows,
+]);
+
+/** Operators an aligned layout lines up at, and that start a line with `&` after a break. */
+const isAligning = (op: string): boolean => relations.has(op) || arrows.has(op);
 
 const prefixOperators: ReadonlySet<string> = new Set(["sum", "ser", "int", "exists", "forall", ...functions]);
 
@@ -73,13 +80,15 @@ function rank(node: Node): number {
       return Rank.multiplicative;
     case "apply": {
       const op = node.operator;
+      if (op === "<=>" || op === "iff") return Rank.iff;
+      if (arrows.has(op)) return Rank.implies;
       if (op === "or") return Rank.or;
       if (op === "and") return Rank.and;
-      if (op === "=") return Rank.relation;
+      if (relations.has(op)) return Rank.relation;
       if (op === "+" || op === "-" || op === "neg") return Rank.additive;
       if (prefixOperators.has(op)) return Rank.prefix;
       if (op === "*" || op === "/") return Rank.multiplicative;
-      if (op === "^" || op === "ssc") return Rank.script;
+      if (op === "^" || op === "ssc" || op === "!") return Rank.script;
       return Rank.atom; // sqrt draws its own enclosure
     }
     default:
@@ -192,24 +201,27 @@ function body(node: Node): string {
 /**
  * Writes `a ∘ b` for an infix operator. A `br` break goes just before the
  * symbol; so does `&` if this is the relation an aligned layout aligns at.
+ * Arrows bracket an equal-rank child on either side, since p ⇒ q ⇒ r reads
+ * differently to different readers.
  */
 function infix(node: Node & { kind: "apply" }): string {
   const { operator } = node;
   const [a, b] = node.args as [Node, Node];
   const r = rank(node);
-  const left = child(a, rank(a) < r);
+  const arrow = arrows.has(operator);
+  const left = child(a, rank(a) < r || (rank(a) === r && arrow));
   const negOnRight = b.kind === "apply" && b.operator === "neg" && (operator === "+" || operator === "-");
   const right = child(b, rank(b) < r || (rank(b) === r && !associative.has(operator)) || negOnRight);
-  const lineBreak = node.breakBefore && !breaksOff ? breakBefore(r === Rank.relation) : "";
+  const lineBreak = node.breakBefore && !breaksOff ? breakBefore(isAligning(operator)) : "";
   const align = node === alignAt ? "&" : "";
-  return `${left} ${lineBreak}${align}${infixLatex[operator]} ${right}`;
+  return `${left} ${lineBreak}${align}${infixLatex.get(operator)} ${right}`;
 }
 
 function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
   const { operator, args } = node;
   const [a, b, c, d] = args;
 
-  if (operator in infixLatex) return infix(node);
+  if (infixLatex.has(operator)) return infix(node);
 
   if (functions.has(operator)) return `\\${operator} ${argument(a!)}`;
 
@@ -231,6 +243,8 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
     }
     case "neg":
       return `-${child(a!, rank(a!) <= Rank.additive)}`;
+    case "!":
+      return `${child(a!, !isAtom(a!) && !isSubscriptedAtom(a!))}!`;
     case "sqrt":
       return `\\sqrt{${boxed(a!, "a square root")}}`;
     case "exists":
@@ -300,10 +314,17 @@ function findBreak(node: Node): Node | undefined {
   return undefined;
 }
 
-/** The leftmost relation of the chain at the root, like the first = in a = b = c. */
+/**
+ * Where an aligned layout lines up: the relation or arrow at the root. For a
+ * chain of relations it's the leftmost one, like the first = in a = b = c; the
+ * chain only continues through relations, so in a = b ⇒ c = d it's the ⇒.
+ * Arrows don't chain, because an arrow's arrow child is in brackets.
+ */
 function leftmostRelation(node: Node): Node | undefined {
-  let found: Node | undefined;
-  for (let n: Node | undefined = node; n?.kind === "apply" && n.operator === "="; n = n.args[0]) found = n;
+  if (node.kind !== "apply" || !isAligning(node.operator)) return undefined;
+  if (arrows.has(node.operator)) return node;
+  let found: Node = node;
+  for (let n = node.args[0]; n?.kind === "apply" && relations.has(n.operator); n = n.args[0]) found = n;
   return found;
 }
 
