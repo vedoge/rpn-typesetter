@@ -41,8 +41,8 @@ const values: Record<string, string> = {
   // Number sets.
   naturals: "\\mathbb{N}", integers: "\\mathbb{Z}", rationals: "\\mathbb{Q}",
   reals: "\\mathbb{R}", complex: "\\mathbb{C}",
-  // Infinity, as used in the `ser` example (open question 1: does it stay?).
-  oo: "\\infty",
+  // Infinity.
+  infty: "\\infty",
 };
 
 /**

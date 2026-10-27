@@ -53,7 +53,7 @@ describe("parser", () => {
 
     it("takes arguments in reading order", () => {
       expect(trees("x i ssc")).toEqual(["(ssc x i)"]);
-      expect(trees("n 1 = oo 1 n 2 ^ / ser")).toEqual(["(ser (= n 1) oo (/ 1 (^ n 2)))"]);
+      expect(trees("n 1 = infty 1 n 2 ^ / ser")).toEqual(["(ser (= n 1) infty (/ 1 (^ n 2)))"]);
       expect(trees("0 pi x sin x int")).toEqual(["(int 0 pi (sin x) x)"]);
     });
 

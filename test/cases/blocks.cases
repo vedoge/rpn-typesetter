@@ -310,10 +310,18 @@ latex: \frac{n!}{k! (n - k)!}
 rpn: 2 n ! *
 latex: 2 n!
 
+## infty is infinity
+rpn: x infty ->
+latex: x \to \infty
+
+## oo is no longer reserved
+rpn: oo
+latex: o o
+
 # Sums and integrals
 
 ## a series
-rpn: n 1 = oo 1 n 2 ^ / ser
+rpn: n 1 = infty 1 n 2 ^ / ser
 latex: \sum_{n = 1}^{\infty} \frac{1}{n^{2}}
 
 ## a summand that is a sum gets brackets
