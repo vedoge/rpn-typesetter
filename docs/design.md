@@ -48,7 +48,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Function arguments are bracketed unless they're atoms:** `x sin` → sin x, `x y + sin` → sin(x + y).
 - **Relations: ASCII where a common spelling exists, names for all:** `<` `>` `<=` `>=` `!=` `<<` `>>` `->`, and the names `leq` `geq` `neq` `ll` `gg` `to` `approx` `equiv` `sim` `propto` `in` `notin` `subset` `subseteq` `supset` `mapsto` `perp`. `<=` is ≤ (`\leq`), not ⇐. All are binary and rank with `=`, so chains work: `0 x < 1 <=` → 0 < x ≤ 1.
 - **Logical arrows:** `=>`/`implies` (⇒, `\implies`), `impliedby` (⇐), `<=>`/`iff` (⇔, `\iff`). They bind more loosely than `and` and `or`, and `iff` most loosely of all: `p q and r or s =>` → p ∧ q ∨ r ⇒ s.
-- **Logical not is `not`** (¬, `\neg`), taking one value: `p not` → ¬p. `!` is already factorial.
+- **Logical not is `not`** (¬, `\neg`), taking one value: `p not` → ¬p. `!` is already factorial. It binds like a function or quantifier, tighter than `and`/`or`: `p not q and` → ¬p ∧ q. Its operand is bracketed if it's a relation or looser: ¬(p ∧ q), ¬(a = b), but ¬∃x.
 - **Factorial is `!`,** a postfix operator taking one value: `n !` → n!. `!=` is a separate whole token, so the two never clash.
 - **Strict RPN for exponents:** `a b + 2 ^`, not `^2` as one token.
 - **No glued minus:** `-b` is not a token. `-` always means binary subtraction.
@@ -77,7 +77,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Spaces always end a raw LaTeX token,** even inside braces, so `\operatorname{arg max}` splits in two.
 - **Letters are ASCII only:** `α` typed directly is an error; write `alpha`.
 - **Decimals:** `3.14` is one number. `3.` and `.5` are errors.
-- **Subscript is `ssc`:** binary. `x i ssc` → x_i.
+- **Subscript is `ssc`, or `_`:** binary. `x i ssc` and `x i _` both → x_i, the same tree, just as `^` is the symbol for powers. Like every symbol, `_` needs spaces around it: `x_i` is an error.
 - **Sums:** `sum` takes 2 arguments (index, summand) → ∑ₙ aₙ. `ser` takes 3 (lower bound, upper bound, summand) → ∑ₙ₌₁^∞. **Bounds come first:** `n 1 = infty 1 n 2 ^ / ser`. There's no bare ∑ without an index.
 - **Definite integrals:** `int` takes 4 arguments: lower bound, upper bound, integrand, variable. `0 pi x sin x int` → ∫₀^π sin x dx. You type the variable (`x`), and `int` writes the d and its spacing.
 - **Bracket rule (emitter):** wrap a child in brackets if its operator ranks lower than its parent's (BIDMAS precedence), or if it ranks equal, is the right-hand child, and the parent is not associative. So `a b c - -` → a − (b − c) and `a b c + +` → a + b + c.
@@ -108,7 +108,6 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Breaking between factors | `a b * br` → a ⏎ b; with a digit, a ⏎ ·2 | The emitter does this now. |
 | Arrow chains get brackets on both sides | `p q => r =>` → (p ⇒ q) ⇒ r, and `p q r => =>` → p ⇒ (q ⇒ r). Readers disagree on which way p ⇒ q ⇒ r groups, so neither is left bare | The emitter does this now. |
 | Where `align` lines up | At the leftmost relation of a relation chain (`a &\leq b < c`); at the root for an arrow (`a = b &\implies c = d`), never inside its brackets. A `br` before any relation or arrow starts the line with `&` | The emitter does this now. |
-| How `not` binds | Like a function or quantifier: tighter than `and`/`or`, so `p not q and` → ¬p ∧ q. Its operand is bracketed if it's a relation or looser: ¬(p ∧ q), ¬(a = b), but ¬∃x | The emitter does this now. |
 | Factorial brackets | The operand is bracketed unless it's an atom or a subscripted atom: (n + 1)!, (2n)!, (n!)!, but n₁! | The emitter does this now. |
 | Prime | `f'` glued | Not built yet. |
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
@@ -122,7 +121,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 ## Open questions
 
-1. **Remaining vocabulary details.** Is `_` allowed alongside `ssc`? More relations (`supseteq`, `parallel`, `mid`, …), as they come up?
+1. **More relations** (`supseteq`, `parallel`, `mid`, …), as they come up.
 2. **What else is a named word, and arities.** Bold, hat? How many arguments do `lim`, `max`, `min`, `sup`, `inf`, `gcd` and `vec` take? `lim` needs its approach (x→0); `max`/`min` might be variadic.
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`?

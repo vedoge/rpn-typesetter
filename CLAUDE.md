@@ -17,7 +17,7 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 ## Design constraints already agreed
 
 - Two implementations kept in step: a TypeScript tool run before LaTeX (via `latexmk`, for pdfLaTeX) whose output is plain LaTeX, and later a LuaLaTeX package doing the same inside the TeX run. Only the TypeScript one exists so far.
-- Arithmetic uses standard symbols (`+ - * / ^ = !`); relations and arrows use ASCII where a common spelling exists (`< <= != -> => <=>`) and names otherwise (`approx`, `in`, `iff`). Named operations are short words (`sqrt`, `neg`, `ssc`, `sum`, …). Avoid `\`.
+- Arithmetic uses standard symbols (`+ - * / ^ _ = !`); relations and arrows use ASCII where a common spelling exists (`< <= != -> => <=>`) and names otherwise (`approx`, `in`, `iff`). Named operations are short words (`sqrt`, `neg`, `ssc`, `sum`, …). Avoid `\`.
 - Tokens are separated by whitespace. Glued letters are a product; reserved words take priority over that.
 - Operators that take a variable number of arguments use a stack mark.
 

@@ -92,6 +92,26 @@ latex: {a + b}_{i}
 rpn: x i ssc 2 ^ j ssc
 latex: {x_{i}^{2}}_{j}
 
+## _ is another spelling of ssc
+rpn: x i _
+latex: x_{i}
+
+## _ and ^ together, tensor style
+rpn: T a ^ b _
+latex: T^{a}_{b}
+
+## _ is grouped invisibly like ssc
+rpn: x i _ j _
+latex: {x_{i}}_{j}
+
+## stack underflow names _ as written
+rpn: x _
+error: `_` needs 2 values, but only 1 is available
+
+## _ glued to its operands
+rpn: x_i
+error: `x_i` needs spaces: tokens are separated by whitespace
+
 # Multiplication
 
 ## glued factors print side by side

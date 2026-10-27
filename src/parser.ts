@@ -57,6 +57,9 @@ export function parse(source: string): ParseResult {
 /** Symbols take two values, except factorial `!`, which takes one. */
 const symbolArity = (symbol: string): number => (symbol === "!" ? 1 : 2);
 
+/** Symbols that are another spelling of a named operator: `x i _` builds the same tree as `x i ssc`. */
+const symbolOperator = (symbol: string): string => (symbol === "_" ? "ssc" : symbol);
+
 /** Operators written between their operands, the only ones `br` can follow. */
 const infix: ReadonlySet<string> = new Set(["+", "-", "*", "and", "or", ...relations.keys(), ...arrows.keys()]);
 
@@ -108,8 +111,9 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
     return args;
   }
 
-  function apply(operator: string, arity: number, at: Span) {
-    const args = take(arity, operator, at);
+  /** Applies an operator; `spelled` is how the author wrote it, for error messages. */
+  function apply(operator: string, arity: number, at: Span, spelled = operator) {
+    const args = take(arity, spelled, at);
     push({ kind: "apply", operator, args, start: args[0]?.start ?? at.start, end: at.end });
   }
 
@@ -222,7 +226,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
         case "symbol":
           if (token.symbol === "[") stack.push({ kind: "mark", span: token });
           else if (token.symbol === ";") stack.push({ kind: "row", span: token });
-          else apply(token.symbol, symbolArity(token.symbol), token);
+          else apply(symbolOperator(token.symbol), symbolArity(token.symbol), token, token.symbol);
           break;
         case "label":
           if (label !== undefined) fail(token, `this equation already has the label \`${label}\``);

@@ -74,9 +74,9 @@ export const arrows: ReadonlyMap<string, string> = new Map([
   ["<=>", "\\iff"], ["iff", "\\iff"],
 ]);
 
-/** Symbols the lexer reads: arithmetic, factorial, marks, row separators, and the ASCII relations and arrows. */
+/** Symbols the lexer reads: arithmetic, `_` (subscript), factorial, marks, row separators, and the ASCII relations and arrows. */
 export const symbols: ReadonlySet<string> = new Set([
-  "+", "-", "*", "/", "^", "!", "[", ";",
+  "+", "-", "*", "/", "^", "_", "!", "[", ";",
   ...[...relations.keys(), ...arrows.keys()].filter((name) => !/^[A-Za-z]/.test(name)),
 ]);
 
