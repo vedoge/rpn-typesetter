@@ -45,8 +45,10 @@ jobs:
             texlive-fonts-recommended latexmk
       - run: npm ci
       # With pdflatex installed, test/latex.test.ts compiles every expected
-      # output in test/cases/ instead of being skipped.
+      # output in test/cases/; REQUIRE_LATEX makes it fail rather than skip.
       - run: npm test
+        env:
+          REQUIRE_LATEX: "1"
       - name: Convert and typeset the example
         run: |
           npm run build

@@ -11,6 +11,10 @@ import { describe, expect, it } from "vitest";
 import { all, readCases, single } from "./cases.js";
 
 const hasLatex = spawnSync("pdflatex", ["--version"]).status === 0;
+
+// CI sets REQUIRE_LATEX, so a missing pdflatex there fails instead of quietly skipping.
+if (process.env["REQUIRE_LATEX"] && !hasLatex) throw new Error("REQUIRE_LATEX is set, but pdflatex isn't installed");
+
 const casesDir = fileURLToPath(new URL("./cases/", import.meta.url));
 
 /** Environment for each layout. Several equations in "single" need a multi-line one. */
