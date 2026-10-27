@@ -47,5 +47,6 @@ Tests:
 
 - `test/cases/*.cases` are the shared cases every implementation must pass: `blocks.cases` (RPN block → LaTeX, errors, warnings) and `documents.cases` (`.rtex` → `.tex`). The plain-text format is in `test/cases/README.md`. Add behaviour an author can observe here, not in TypeScript tests. `test/conformance.test.ts` runs them through `test/cases.ts`.
 - `test/lexer.test.ts` and `test/parser.test.ts` test internals (token shapes, trees, spans); parser tests print trees compactly, e.g. `(+ a (- b c))`. `test/cli.test.ts` tests the command-line tool.
+- `test/latex.test.ts` compiles every expected output in the case files with `pdflatex`, and names the case LaTeX stopped in. It is skipped where `pdflatex` isn't installed (as in the cloud container), so run `npm test` on a machine with TeX to cover it.
 
 When the code has to make a choice the design log hasn't settled, it records it under **Proposed** in `docs/design.md` and says so.
