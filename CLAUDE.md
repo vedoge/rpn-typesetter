@@ -16,7 +16,7 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 
 ## Design constraints already agreed
 
-- TypeScript implementation, run as an external tool before LaTeX (via `latexmk`); output is plain LaTeX. Not a LuaLaTeX package.
+- Two implementations kept in step: a TypeScript tool run before LaTeX (via `latexmk`, for pdfLaTeX) whose output is plain LaTeX, and later a LuaLaTeX package doing the same inside the TeX run. Only the TypeScript one exists so far.
 - Arithmetic uses standard symbols (`+ - * / ^ =`). Named operations are short words (`sqrt`, `neg`, `ssc`, `sum`, …). Avoid `\`.
 - Tokens are separated by whitespace. Glued letters are a product; reserved words take priority over that.
 - Operators that take a variable number of arguments use a stack mark.
