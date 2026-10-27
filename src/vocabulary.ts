@@ -64,7 +64,8 @@ export const relations: ReadonlyMap<string, string> = new Map([
   ["<=", "\\leq"], [">=", "\\geq"], ["!=", "\\neq"], ["<<", "\\ll"], [">>", "\\gg"], ["->", "\\to"],
   ["leq", "\\leq"], ["geq", "\\geq"], ["neq", "\\neq"], ["ll", "\\ll"], ["gg", "\\gg"], ["to", "\\to"],
   ["approx", "\\approx"], ["equiv", "\\equiv"], ["sim", "\\sim"], ["propto", "\\propto"],
-  ["in", "\\in"], ["notin", "\\notin"], ["subset", "\\subset"], ["subseteq", "\\subseteq"],
+  ["in", "\\in"], ["notin", "\\notin"], ["subset", "\\subset"], ["subseteq", "\\subseteq"], ["supset", "\\supset"],
+  ["mapsto", "\\mapsto"], ["perp", "\\perp"],
 ]);
 
 /** Logical arrows. They bind more loosely than `and` and `or`; `iff` most loosely of all. */
@@ -86,7 +87,7 @@ export const symbols: ReadonlySet<string> = new Set([
 // - "undecided": reserved, but its arity is still an open question, so the
 //   parser rejects it for now.
 const operators: Record<string, Arity> = {
-  neg: 1, sqrt: 1, exists: 1, forall: 1,
+  neg: 1, sqrt: 1, exists: 1, forall: 1, not: 1,
   ssc: 2, sum: 2, and: 2, or: 2,
   ser: 3,
   int: 4,

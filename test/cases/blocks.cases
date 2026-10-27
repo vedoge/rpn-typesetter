@@ -230,6 +230,18 @@ latex: x \in \mathbb{R} \wedge A \subseteq B
 rpn: x A notin A B subset and
 latex: x \notin A \wedge A \subset B
 
+## supset
+rpn: A B supset
+latex: A \supset B
+
+## mapsto
+rpn: x x 2 ^ mapsto
+latex: x \mapsto x^{2}
+
+## perp
+rpn: u v perp
+latex: u \perp v
+
 ## a chain of mixed relations
 rpn: 0 x < 1 <=
 latex: 0 < x \leq 1
@@ -275,6 +287,28 @@ latex: (p \implies q) \implies r
 ## an arrow chain is bracketed on the right
 rpn: p q r => =>
 latex: p \implies (q \implies r)
+
+# Logical not
+
+## not
+rpn: p not
+latex: \neg p
+
+## not binds tighter than and
+rpn: p not q and
+latex: \neg p \wedge q
+
+## not of a conjunction gets brackets
+rpn: p q and not
+latex: \neg (p \wedge q)
+
+## not of a relation gets brackets
+rpn: a b = not
+latex: \neg (a = b)
+
+## not of a quantifier needs none
+rpn: x exists not
+latex: \neg \exists x
 
 # Factorial
 

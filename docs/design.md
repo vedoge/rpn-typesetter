@@ -46,8 +46,9 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Errors:** every bad block is reported (one error per block) as `paper.rtex:12:8: error: …`, then the tool exits 1 without writing `paper.tex`.
 - **A function or sum used as a factor is bracketed only when something follows it:** `x sin y *` → (sin x)y, but `y x sin *` → y sin x.
 - **Function arguments are bracketed unless they're atoms:** `x sin` → sin x, `x y + sin` → sin(x + y).
-- **Relations: ASCII where a common spelling exists, names for all:** `<` `>` `<=` `>=` `!=` `<<` `>>` `->`, and the names `leq` `geq` `neq` `ll` `gg` `to` `approx` `equiv` `sim` `propto` `in` `notin` `subset` `subseteq`. `<=` is ≤ (`\leq`), not ⇐. All are binary and rank with `=`, so chains work: `0 x < 1 <=` → 0 < x ≤ 1.
+- **Relations: ASCII where a common spelling exists, names for all:** `<` `>` `<=` `>=` `!=` `<<` `>>` `->`, and the names `leq` `geq` `neq` `ll` `gg` `to` `approx` `equiv` `sim` `propto` `in` `notin` `subset` `subseteq` `supset` `mapsto` `perp`. `<=` is ≤ (`\leq`), not ⇐. All are binary and rank with `=`, so chains work: `0 x < 1 <=` → 0 < x ≤ 1.
 - **Logical arrows:** `=>`/`implies` (⇒, `\implies`), `impliedby` (⇐), `<=>`/`iff` (⇔, `\iff`). They bind more loosely than `and` and `or`, and `iff` most loosely of all: `p q and r or s =>` → p ∧ q ∨ r ⇒ s.
+- **Logical not is `not`** (¬, `\neg`), taking one value: `p not` → ¬p. `!` is already factorial.
 - **Factorial is `!`,** a postfix operator taking one value: `n !` → n!. `!=` is a separate whole token, so the two never clash.
 - **Strict RPN for exponents:** `a b + 2 ^`, not `^2` as one token.
 - **No glued minus:** `-b` is not a token. `-` always means binary subtraction.
@@ -107,6 +108,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Breaking between factors | `a b * br` → a ⏎ b; with a digit, a ⏎ ·2 | The emitter does this now. |
 | Arrow chains get brackets on both sides | `p q => r =>` → (p ⇒ q) ⇒ r, and `p q r => =>` → p ⇒ (q ⇒ r). Readers disagree on which way p ⇒ q ⇒ r groups, so neither is left bare | The emitter does this now. |
 | Where `align` lines up | At the leftmost relation of a relation chain (`a &\leq b < c`); at the root for an arrow (`a = b &\implies c = d`), never inside its brackets. A `br` before any relation or arrow starts the line with `&` | The emitter does this now. |
+| How `not` binds | Like a function or quantifier: tighter than `and`/`or`, so `p not q and` → ¬p ∧ q. Its operand is bracketed if it's a relation or looser: ¬(p ∧ q), ¬(a = b), but ¬∃x | The emitter does this now. |
 | Factorial brackets | The operand is bracketed unless it's an atom or a subscripted atom: (n + 1)!, (2n)!, (n!)!, but n₁! | The emitter does this now. |
 | Prime | `f'` glued | Not built yet. |
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
@@ -120,7 +122,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 
 ## Open questions
 
-1. **Remaining vocabulary details.** Is `_` allowed alongside `ssc`? More relations and arrows (`supset`, `mapsto`, `perp`, `not`/¬)?
+1. **Remaining vocabulary details.** Is `_` allowed alongside `ssc`? More relations (`supseteq`, `parallel`, `mid`, …), as they come up?
 2. **What else is a named word, and arities.** Bold, hat? How many arguments do `lim`, `max`, `min`, `sup`, `inf`, `gcd` and `vec` take? `lim` needs its approach (x→0); `max`/`min` might be variadic.
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`?

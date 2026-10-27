@@ -71,7 +71,7 @@ const infixLatex: ReadonlyMap<string, string> = new Map([
 /** Operators an aligned layout lines up at, and that start a line with `&` after a break. */
 const isAligning = (op: string): boolean => relations.has(op) || arrows.has(op);
 
-const prefixOperators: ReadonlySet<string> = new Set(["sum", "ser", "int", "exists", "forall", ...functions]);
+const prefixOperators: ReadonlySet<string> = new Set(["sum", "ser", "int", "exists", "forall", "not", ...functions]);
 
 function rank(node: Node): number {
   switch (node.kind) {
@@ -247,6 +247,9 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
       return `${child(a!, !isAtom(a!) && !isSubscriptedAtom(a!))}!`;
     case "sqrt":
       return `\\sqrt{${boxed(a!, "a square root")}}`;
+    case "not":
+      // ¬ binds tighter than ∧ and ∨, so it brackets a relation or anything looser.
+      return `\\neg ${child(a!, rank(a!) <= Rank.relation)}`;
     case "exists":
     case "forall":
       return `\\${operator} ${argument(a!)}`;
