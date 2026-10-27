@@ -1,2 +1,9 @@
 node_modules/
 dist/
+# Generated from examples/*.rtex, and LaTeX's own files.
+examples/*.tex
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.pdf

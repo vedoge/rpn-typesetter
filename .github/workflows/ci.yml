@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    name: Typecheck, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  latex:
+    name: Compile with pdfLaTeX
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended latexmk
+      - run: npm ci
+      # With pdflatex installed, test/latex.test.ts compiles every expected
+      # output in test/cases/ instead of being skipped.
+      - run: npm test
+      - name: Convert and typeset the example
+        run: |
+          npm run build
+          node dist/cli.js examples/demo.rtex
+          latexmk -pdf -interaction=nonstopmode -halt-on-error -cd examples/demo.tex
+      - name: Upload the PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo
+          path: |
+            examples/demo.tex
+            examples/demo.pdf
+            examples/demo.log
+          if-no-files-found: ignore

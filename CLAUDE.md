@@ -32,6 +32,8 @@ The tool converts a whole `.rtex` file to `.tex`: `npm run build`, then `node di
 
 Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.test.ts`.
 
+CI (`.github/workflows/ci.yml`) runs on every push and pull request. The `checks` job typechecks, tests and builds. The `latex` job installs TeX Live, so `test/latex.test.ts` runs for real, then converts `examples/demo.rtex` and typesets it with `latexmk`; the PDF is uploaded as the `demo` artifact. Generated `examples/*.tex` and LaTeX's own files are git-ignored.
+
 ## Architecture
 
 The scanner finds RPN blocks in a document; each block goes through lexer → parser → emitter.

@@ -1,0 +1,30 @@
+\documentclass{article}
+\title{rpn-typesetter demo}
+\date{}
+\begin{document}
+\maketitle
+
+The roots of $@ a x 2 ^ * b x * + c + 0 =$ are
+\[@ x b neg b 2 ^ 4ac - sqrt + 2a / = \]
+
+The Basel problem, and an integral:
+\begin{align}@
+  \label{eq:basel} n 1 = oo 1 n 2 ^ / ser pi 2 ^ 6 / = ;
+  0 pi x sin x int 2 = \notag
+\end{align}
+Equation~(\ref{eq:basel}) was solved by Euler.
+
+A long expression, broken by hand:
+\begin{multline}@
+  a b + c d + * e f + g h + * + i j + k l + * + br
+\end{multline}
+
+A derivation, broken at its relations:
+\begin{align}@
+  x a b + 2 ^ = a 2 ^ 2ab + b 2 ^ + = br
+\end{align}
+
+A tensor $@ T mu ^ nu ssc$, a matrix $@ [ a b ; c d mat$,
+and a piecewise function
+\[@ f [ 1 x 0 = ; 0 "otherwise" cases = \]
+\end{document}
