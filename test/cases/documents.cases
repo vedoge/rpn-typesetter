@@ -1,0 +1,176 @@
+# A whole .rtex document in, a .tex document out. See README.md for the format.
+
+# Finding RPN blocks
+
+## inline math that starts with @ is converted
+document: so $@ a b + 2 ^$ holds
+output: so $ (a + b)^{2} $ holds
+
+## plain math and ordinary text are left alone
+document: Text with $x^2 + 1$, \[ \frac{a}{b} \] and \begin{equation} E = mc^2 \end{equation}.
+output: Text with $x^2 + 1$, \[ \frac{a}{b} \] and \begin{equation} E = mc^2 \end{equation}.
+
+## spaces before the marker are allowed
+document: $ @ a b +$
+output: $  a + b $
+
+## ${}@$ is plain math
+document: ${}@$
+output: ${}@$
+
+## \( \)
+document: \(@ a b +\)
+output: \( a + b \)
+
+## \[ \]
+document: \[@ a b +\]
+output: \[ a + b \]
+
+## $$ $$
+document: $$@ a b +$$
+output: $$ a + b $$
+
+## \ensuremath
+document: \ensuremath{@ a b +}
+output: \ensuremath{ a + b }
+
+## a starred environment
+document: \begin{equation*}@ a b + \end{equation*}
+output: \begin{equation*} a + b \end{equation*}
+
+## an environment's own arguments are kept
+document: \begin{alignat}{2}@ a b = \end{alignat}
+output: \begin{alignat}{2} a &= b \end{alignat}
+
+## a block across several lines
+document:
+  \begin{align}@
+    a b = ;
+    c d =
+  \end{align}
+output:
+  \begin{align} a &= b \\ c &= d \end{align}
+
+# Equations in displays
+
+## align aligns separate equations at their relation
+document: \begin{align*}@ a b = ; c d e + = \end{align*}
+output: \begin{align*} a &= b \\ c &= d + e \end{align*}
+
+## gather puts them on separate lines without &
+document: \begin{gather}@ a b = ; c d = \end{gather}
+output: \begin{gather} a = b \\ c = d \end{gather}
+
+## br in multline
+document: \begin{multline}@ a b + c + br \end{multline}
+output: \begin{multline} a + b \\ + c \end{multline}
+
+## br in align, next to a separate equation
+document: \begin{align}@ a b = c = br ; d e = \end{align}
+output: \begin{align} a &= b \notag \\ &= c \\ d &= e \end{align}
+
+## each equation keeps its label
+document: \begin{align}@ \label{eq:one} a b = ; c d = \notag \end{align}
+output: \begin{align} a &= b \label{eq:one} \\ c &= d \notag \end{align}
+
+## a br the region can't hold
+document: $@ a b + br$
+error: 1:4: `br` needs a display that can hold several lines, like multline, align or gather
+
+## several equations where only one fits
+document: $@ a b = ; c d =$
+error: 1:12: $…$ holds one equation; use an environment like align or gather for several
+
+## several equations in multline
+document: \begin{multline}@ a b = ; c d = \end{multline}
+error: 1:27: multline holds one equation; use an environment like align or gather for several
+
+# Places that aren't math
+
+## comments are skipped
+document: % $@ a +$ is not math
+output: % $@ a +$ is not math
+
+## a comment inside an RPN block is ignored
+document:
+  $@ a b + % the sum
+  $
+output: $ a + b $
+
+## escaped dollars and percent signs are skipped
+document: costs \$5 and 10\% off, $@ a b +$
+output: costs \$5 and 10\% off, $ a + b $
+
+## \% inside an RPN block is raw LaTeX
+document: $@ 50 \% *$
+output: $ 50 \% $
+
+## \% inside quoted text is kept
+document: $@ "50\% off"$
+output: $ \text{50\% off} $
+
+## verbatim and \verb are skipped
+document: \begin{verbatim}$@ a +$\end{verbatim} \verb|$@ a +| \verb*+$+
+output: \begin{verbatim}$@ a +$\end{verbatim} \verb|$@ a +| \verb*+$+
+
+# Errors and warnings
+
+## an error is reported at its line and column
+document:
+  Line one.
+  Then $@ a +$.
+error: 2:11: `+` needs 2 values, but only 1 is available
+
+## every bad block is reported
+document: $@ a +$ $@ b c +$ $@ sqrt$
+error: 1:6: `+` needs 2 values, but only 1 is available
+error: 1:22: `sqrt` needs 1 value, but none is available
+
+## a warning is reported at its line and column
+document: $@ 2 x 2 ^$
+output: $ 2 x^{2} $
+warning: 1:4: 2 values were left on the stack, so they're set side by side; is an operator missing?
+
+# Packages
+
+## amsmath and amssymb load right after \documentclass, on the same line
+document:
+  \documentclass[11pt]{article}
+  \begin{document}$@ a$\end{document}
+output:
+  \documentclass[11pt]{article}\usepackage{amsmath,amssymb}
+  \begin{document}$ a $\end{document}
+
+## a package the author loads isn't loaded again
+document:
+  \documentclass{article}
+  \usepackage[fleqn]{amsmath}
+  \begin{document}$@ a$\end{document}
+output:
+  \documentclass{article}\usepackage{amssymb}
+  \usepackage[fleqn]{amsmath}
+  \begin{document}$ a $\end{document}
+
+## mathtools counts as amsmath
+document:
+  \documentclass{article}
+  \usepackage{mathtools,amssymb}
+  \begin{document}$@ a$\end{document}
+output:
+  \documentclass{article}
+  \usepackage{mathtools,amssymb}
+  \begin{document}$ a $\end{document}
+
+## a \usepackage that's commented out doesn't count
+document:
+  \documentclass{article}
+  % \usepackage{amsmath}
+  \begin{document}$@ a$\end{document}
+output:
+  \documentclass{article}\usepackage{amsmath,amssymb}
+  % \usepackage{amsmath}
+  \begin{document}$ a $\end{document}
+
+## a file without \documentclass gets nothing
+document: $@ a$
+output: $ a $

@@ -38,13 +38,6 @@ function trees(source: string): string[] {
   return result.equations.map((eq) => show(eq.body));
 }
 
-/** The one error a block produces. */
-function error(source: string): string {
-  const { errors } = parse(source);
-  expect(errors).toHaveLength(1);
-  return errors[0]!.message;
-}
-
 describe("parser", () => {
   describe("building trees", () => {
     it("parses the quadratic formula", () => {
@@ -97,22 +90,6 @@ describe("parser", () => {
       expect(trees("[ [ a b col c ; d e mat")).toEqual(["(mat [(col [a b]) c] [d e])"]);
     });
 
-    it("rejects a variadic operator with no mark", () => {
-      expect(error("a b mat")).toBe("`mat` needs a mark `[` before its entries");
-    });
-
-    it("rejects a mark that's never used", () => {
-      expect(error("[ a b")).toBe("this mark `[` is never used by a variadic operator (`mat`, `cases`, `col`)");
-    });
-
-    it("rejects an empty row", () => {
-      expect(error("[ a ; mat")).toBe("`mat` has an empty row");
-    });
-
-    it("doesn't let an operator reach past a mark or a row", () => {
-      expect(error("a [ b + mat")).toBe("`+` needs 2 values, but only 1 is available after the last `[`");
-      expect(error("[ a ; b + mat")).toBe("`+` needs 2 values, but only 1 is available in this row");
-    });
   });
 
   describe("breaks", () => {
@@ -121,12 +98,6 @@ describe("parser", () => {
       expect(trees("a b = c = br")).toEqual(["(=/br (= a b) c)"]);
     });
 
-    it("rejects br anywhere but right after an infix operator", () => {
-      const message = "`br` must come right after an operator written between its operands (+ - * = and or)";
-      expect(error("a br")).toBe(message);
-      expect(error("a b ^ br")).toBe(message);
-      expect(error("a b + c br")).toBe(message);
-    });
   });
 
   describe("equations", () => {
@@ -146,15 +117,6 @@ describe("parser", () => {
       ]);
     });
 
-    it("rejects a second label on one equation", () => {
-      expect(error("\\label{a} x \\label{b}")).toBe("this equation already has the label `a`");
-    });
-
-    it("rejects empty equations", () => {
-      expect(error("")).toBe("the RPN block is empty");
-      expect(error("; a")).toBe("this equation is empty");
-      expect(error("a ;")).toBe("nothing follows this `;`");
-    });
   });
 
   describe("errors and warnings", () => {
@@ -169,18 +131,6 @@ describe("parser", () => {
     it("reports stack underflow at the operator", () => {
       const { errors } = parse("a +");
       expect(errors).toEqual([{ start: 2, end: 3, message: "`+` needs 2 values, but only 1 is available" }]);
-      expect(error("sqrt")).toBe("`sqrt` needs 1 value, but none is available");
-      expect(error("a \\overset/2")).toBe("`\\overset` needs 2 values, but only 1 is available");
-    });
-
-    it("rejects operators whose arity isn't decided yet", () => {
-      expect(error("x lim")).toBe("`lim` is reserved, but how many values it takes isn't decided yet");
-    });
-
-    it("passes lexer errors through without parsing", () => {
-      expect(error("x1y +")).toBe(
-        "`x1y`: glued digits after letters are a subscript and must end the token (`x1` → x₁)",
-      );
     });
   });
 });

@@ -1,0 +1,484 @@
+# One RPN block in, LaTeX out. See README.md for the format.
+
+## the quadratic formula
+rpn: b neg b 2 ^ 4ac - sqrt + 2a /
+latex: \frac{-b + \sqrt{b^{2} - 4 a c}}{2 a}
+
+# The bracket rule
+
+## a looser left child gets brackets
+rpn: a b + c *
+latex: (a + b) c
+
+## a looser right child gets brackets
+rpn: c a b + *
+latex: c (a + b)
+
+## a sum as the base of a power gets brackets
+rpn: a b + 2 ^
+latex: (a + b)^{2}
+
+## an equal-rank right child of - gets brackets
+rpn: a b c - -
+latex: a - (b - c)
+
+## a sum as the right child of - gets brackets
+rpn: a b c + -
+latex: a - (b + c)
+
+## an equal-rank right child of + needs none
+rpn: a b c + +
+latex: a + b + c
+
+## a difference as the right child of + needs none
+rpn: a b c - +
+latex: a + b - c
+
+## a left-nested difference needs none
+rpn: a b - c -
+latex: a - b - c
+
+## a fraction boxes its parts
+rpn: a b + c d - /
+latex: \frac{a + b}{c - d}
+
+## an exponent is boxed
+rpn: x a b + ^
+latex: x^{a + b}
+
+## a square root is boxed
+rpn: a b + sqrt
+latex: \sqrt{a + b}
+
+## a subscript is boxed
+rpn: x i 1 + ssc
+latex: x_{i + 1}
+
+## tall contents get stretchy brackets
+rpn: a b / c + 2 ^
+latex: \left(\frac{a}{b} + c\right)^{2}
+
+# Powers and subscripts
+
+## a subscripted base of a power needs no brackets
+rpn: x i ssc 2 ^
+latex: x_{i}^{2}
+
+## a glued subscript as the base of a power
+rpn: x1 2 ^
+latex: x_{1}^{2}
+
+## a power as the base of a power gets brackets
+rpn: a 2 ^ 3 ^
+latex: (a^{2})^{3}
+
+## a power is subscripted without brackets
+rpn: x 2 ^ i ssc
+latex: x^{2}_{i}
+
+## tensor indices
+rpn: T a ^ b ssc
+latex: T^{a}_{b}
+
+## a subscripted subscript is grouped invisibly
+rpn: x i ssc j ssc
+latex: {x_{i}}_{j}
+
+## a subscripted sum is grouped invisibly
+rpn: a b + i ssc
+latex: {a + b}_{i}
+
+## a subscripted power of a subscript is grouped invisibly
+rpn: x i ssc 2 ^ j ssc
+latex: {x_{i}^{2}}_{j}
+
+# Multiplication
+
+## glued factors print side by side
+rpn: 4ac
+latex: 4 a c
+
+## * prints side by side
+rpn: 2 a *
+latex: 2 a
+
+## a number glued to a reserved value
+rpn: 2pi
+latex: 2 \pi
+
+## bracketed factors print side by side
+rpn: a b + c d + *
+latex: (a + b) (c + d)
+
+## two numbers get \cdot
+rpn: 2 3 *
+latex: 2 \cdot 3
+
+## a number after a letter gets \cdot
+rpn: a 2 *
+latex: a \cdot 2
+
+## a number after a power gets \cdot
+rpn: x 2 ^ 3 *
+latex: x^{2} \cdot 3
+
+# Functions, negation and logic
+
+## an atom argument needs no brackets
+rpn: x sin
+latex: \sin x
+
+## a subscripted atom argument needs no brackets
+rpn: x1 sin
+latex: \sin x_{1}
+
+## a sum argument gets brackets
+rpn: x y + sin
+latex: \sin (x + y)
+
+## a product argument gets brackets
+rpn: 2x sin
+latex: \sin (2 x)
+
+## a function followed by a factor gets brackets
+rpn: x sin y *
+latex: (\sin x) y
+
+## a function as the last factor needs none
+rpn: y x sin *
+latex: y \sin x
+
+## a function in the middle of a product gets brackets
+rpn: y x sin * z *
+latex: y (\sin x) z
+
+## two functions side by side
+rpn: x sin y sin *
+latex: (\sin x) \sin y
+
+## a sum as the last factor needs none
+rpn: c n a n ssc sum *
+latex: c \sum_{n} a_{n}
+
+## a negation after + gets brackets
+rpn: a b neg +
+latex: a + (-b)
+
+## a negation before + needs none
+rpn: b neg a +
+latex: -b + a
+
+## a negation after = needs none
+rpn: a b neg =
+latex: a = -b
+
+## a negated sum gets brackets
+rpn: a b + neg
+latex: -(a + b)
+
+## and binds looser than relations
+rpn: a b = c d = and
+latex: a = b \wedge c = d
+
+## or binds looser than and
+rpn: a b or c and
+latex: (a \vee b) \wedge c
+
+## and and or under a relation get brackets
+rpn: a b or c d and =
+latex: (a \vee b) = (c \wedge d)
+
+## exists
+rpn: x exists
+latex: \exists x
+
+## forall
+rpn: x forall
+latex: \forall x
+
+# Sums and integrals
+
+## a series
+rpn: n 1 = oo 1 n 2 ^ / ser
+latex: \sum_{n = 1}^{\infty} \frac{1}{n^{2}}
+
+## a summand that is a sum gets brackets
+rpn: n a n ssc b + sum
+latex: \sum_{n} (a_{n} + b)
+
+## an integral writes the d and its spacing
+rpn: 0 pi x sin x int
+latex: \int_{0}^{\pi} \sin x \,dx
+
+# Variadic operators
+
+## a matrix
+rpn: [ a b ; c d mat
+latex: \begin{pmatrix} a & b \\ c & d \end{pmatrix}
+
+## a column vector
+rpn: [ a b c col
+latex: \begin{pmatrix} a \\ b \\ c \end{pmatrix}
+
+## cases
+rpn: [ 1 x 0 = ; 0 "otherwise" cases
+latex: \begin{cases} 1 & x = 0 \\ 0 & \text{otherwise} \end{cases}
+
+## a fixed-arity operator inside a row
+rpn: [ n a n ssc sum x ; c d mat
+latex: \begin{pmatrix} \sum_{n} a_{n} & x \\ c & d \end{pmatrix}
+
+## nested marks
+rpn: [ [ a b col c ; d e mat
+latex: \begin{pmatrix} \begin{pmatrix} a \\ b \end{pmatrix} & c \\ d & e \end{pmatrix}
+
+# Values
+
+## a borrowed Greek capital is upright
+rpn: Alpha
+latex: \mathrm{A}
+
+## raw LaTeX as a value
+rpn: \mathcal{F} x ssc
+latex: \mathcal{F}_{x}
+
+## a raw operator
+rpn: a b \overset/2
+latex: \overset{a}{b}
+
+## quoted text
+rpn: "if "
+latex: \text{if }
+
+## a quote inside text
+rpn: "say \"hi\""
+latex: \text{say "hi"}
+
+## a backslash inside text is kept
+rpn: "costs \$5"
+latex: \text{costs \$5}
+
+# Equations
+
+## each equation keeps its label and \notag
+rpn: \label{eq:e} E m c 2 ^ * = ; a b = \notag
+latex: E = m c^{2} \label{eq:e}
+latex: a = b \notag
+
+## leftovers are set side by side, with a warning
+rpn: 2 x 2 ^
+latex: 2 x^{2}
+warning: 2 values were left on the stack, so they're set side by side; is an operator missing?
+
+# Aligned layout (align)
+
+## & goes before the relation
+layout: aligned
+rpn: a b =
+latex: a &= b
+
+## & before the relation, with a product on the right
+layout: aligned
+rpn: E m c 2 ^ * =
+latex: E &= m c^{2}
+
+## both sides get the same brackets as without align
+layout: aligned
+rpn: a b or c d and =
+latex: (a \vee b) &= (c \wedge d)
+
+## a relation on the right of a relation
+layout: aligned
+rpn: a b c = =
+latex: a &= (b = c)
+
+## a chain aligns at its first relation
+layout: aligned
+rpn: a b = c =
+latex: a &= b = c
+
+## no & without a relation at the root
+layout: aligned
+rpn: a b +
+latex: a + b
+
+## no & when the root is a logical operator
+layout: aligned
+rpn: a b = c d = and
+latex: a = b \wedge c = d
+
+## the label and \notag come after
+layout: aligned
+rpn: \label{eq:e} E m c 2 ^ * =
+latex: E &= m c^{2} \label{eq:e}
+
+## \notag after an aligned equation
+layout: aligned
+rpn: a b = \notag
+latex: a &= b \notag
+
+# Line breaks
+
+## multline breaks before the operator
+layout: multline
+rpn: a b + c + br
+latex: a + b \\ + c
+
+## align breaks a chain at its relations
+layout: aligned
+rpn: a b = c = br
+latex: a &= b \notag \\ &= c
+
+## align indents a line that continues at +
+layout: aligned
+rpn: a b c + d + br =
+latex: a &= b + c \notag \\ &\qquad + d
+
+## a broken equation is numbered once, on its last line
+layout: lines
+rpn: \label{eq:x} a b + c + br
+latex: a + b \notag \\ + c \label{eq:x}
+
+## a break between factors
+layout: multline
+rpn: a b * br
+latex: a \\ b
+
+## a break before a number factor keeps \cdot
+layout: multline
+rpn: a 2 * br
+latex: a \\ \cdot 2
+
+## brackets split across a break
+layout: multline
+rpn: a b c + br *
+latex: a \left(\vphantom{b + c} b\right. \\ \left.\vphantom{b + c} + c\right)
+
+## split brackets in align
+layout: aligned
+rpn: x a b c + br * =
+latex: x &= a \left(\vphantom{b + c} b\right. \notag \\ &\qquad \left.\vphantom{b + c} + c\right)
+
+## a break in a one-line display
+rpn: a b + br
+error: `br` needs a display that can hold several lines, like multline, align or gather
+
+## a break inside a fraction
+layout: multline
+rpn: a b + br c /
+error: `br` can't break a line inside a fraction
+
+## a break inside a square root
+layout: multline
+rpn: a b + br sqrt
+error: `br` can't break a line inside a square root
+
+# Lexer errors
+
+## a number glued to an operator
+rpn: 2sqrt
+error: `2` is glued to the operator `sqrt`; did you mean `2 sqrt`?
+
+## a subscript on an operator
+rpn: sqrt2
+error: the operator `sqrt` can't take a subscript; did you mean `2 sqrt`?
+
+## letters after a glued subscript
+rpn: x1y
+error: `x1y`: glued digits after letters are a subscript and must end the token (`x1` → x₁)
+
+## tokens need whitespace between them
+rpn: 4ac-
+error: `4ac-` needs spaces: tokens are separated by whitespace
+
+## a symbol not in the language
+rpn: <=
+error: unknown symbol `<=`
+
+## a label split by a space
+rpn: \label{eq: energy}
+error: a label is written `\label{name}`, with no spaces in the name
+error: unknown symbol `energy}`
+
+## a lone backslash
+rpn: \
+error: a lone `\` is not a LaTeX command
+
+## a string with no closing quote
+rpn: x "if
+error: unterminated string: missing the closing "
+
+## a string glued to the next token
+rpn: "if"x
+error: a string must be followed by a space
+
+## every bad token is reported
+rpn: x1y a 2sqrt b
+error: `x1y`: glued digits after letters are a subscript and must end the token (`x1` → x₁)
+error: `2` is glued to the operator `sqrt`; did you mean `2 sqrt`?
+
+# Parser errors
+
+## stack underflow
+rpn: a +
+error: `+` needs 2 values, but only 1 is available
+
+## stack underflow with nothing on the stack
+rpn: sqrt
+error: `sqrt` needs 1 value, but none is available
+
+## stack underflow for a raw operator
+rpn: a \overset/2
+error: `\overset` needs 2 values, but only 1 is available
+
+## a variadic operator with no mark
+rpn: a b mat
+error: `mat` needs a mark `[` before its entries
+
+## a mark that's never used
+rpn: [ a b
+error: this mark `[` is never used by a variadic operator (`mat`, `cases`, `col`)
+
+## an empty row
+rpn: [ a ; mat
+error: `mat` has an empty row
+
+## an operator can't reach past a mark
+rpn: a [ b + mat
+error: `+` needs 2 values, but only 1 is available after the last `[`
+
+## an operator can't reach past a row
+rpn: [ a ; b + mat
+error: `+` needs 2 values, but only 1 is available in this row
+
+## br after a value
+rpn: a br
+error: `br` must come right after an operator written between its operands (+ - * = and or)
+
+## br after a power
+rpn: a b ^ br
+error: `br` must come right after an operator written between its operands (+ - * = and or)
+
+## br not right after its operator
+rpn: a b + c br
+error: `br` must come right after an operator written between its operands (+ - * = and or)
+
+## a second label on one equation
+rpn: \label{a} x \label{b}
+error: this equation already has the label `a`
+
+## an empty block
+rpn:
+error: the RPN block is empty
+
+## an empty equation before a ;
+rpn: ; a
+error: this equation is empty
+
+## a trailing ;
+rpn: a ;
+error: nothing follows this `;`
+
+## an operator whose arity isn't decided
+rpn: x lim
+error: `lim` is reserved, but how many values it takes isn't decided yet

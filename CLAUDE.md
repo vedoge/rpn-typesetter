@@ -43,6 +43,9 @@ The scanner finds RPN blocks in a document; each block goes through lexer → pa
 - `src/emitter.ts`: `toLatex(source)` runs the whole pipeline on one block and returns LaTeX per equation. `emitNode` walks the tree; most of its work is the bracket rule, driven by `rank()` (how tightly each node binds) plus the layout rules for boxed arguments. `emitEquation(eq, layout)` writes an equation for a `Layout` (`single`, `multline`, `lines`, `aligned`): in `aligned` the first root relation gets `&`. A `br` break is written as a placeholder first; brackets around one split into `\left( … \right.` / `\left. … \right)` halves with a `\vphantom`, and the placeholder finally becomes `\\`, `\\ &` or `\\ &\qquad`. Problems such as a break inside a fraction throw `EmitError`.
 - `src/vocabulary.ts`: the reserved words. Values carry their LaTeX; operators carry their arity (a number, `"variadic"`, `"break"` for `br`, or `"undecided"`, which the parser rejects).
 
-Tests in `test/parser.test.ts` print trees compactly, e.g. `(+ a (- b c))`, so expected trees are easy to read.
+Tests:
+
+- `test/cases/*.cases` are the shared cases every implementation must pass: `blocks.cases` (RPN block → LaTeX, errors, warnings) and `documents.cases` (`.rtex` → `.tex`). The plain-text format is in `test/cases/README.md`. Add behaviour an author can observe here, not in TypeScript tests. `test/conformance.test.ts` runs them through `test/cases.ts`.
+- `test/lexer.test.ts` and `test/parser.test.ts` test internals (token shapes, trees, spans); parser tests print trees compactly, e.g. `(+ a (- b c))`. `test/cli.test.ts` tests the command-line tool.
 
 When the code has to make a choice the design log hasn't settled, it records it under **Proposed** in `docs/design.md` and says so.

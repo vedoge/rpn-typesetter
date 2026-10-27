@@ -8,11 +8,6 @@ function shapes(source: string) {
   return tokens.map(({ start: _start, end: _end, ...rest }) => rest);
 }
 
-/** Just the error messages. */
-function errors(source: string): string[] {
-  return lex(source).errors.map((e) => e.message);
-}
-
 describe("lexer", () => {
   it("lexes the quadratic formula", () => {
     expect(shapes("b neg b 2 ^ 4ac - sqrt + 2a /")).toEqual([
@@ -113,10 +108,6 @@ describe("lexer", () => {
       ]);
     });
 
-    it("rejects a number glued to an operator", () => {
-      expect(errors("2sqrt")).toEqual(["`2` is glued to the operator `sqrt`; did you mean `2 sqrt`?"]);
-    });
-
     it("reserves uppercase Greek letters LaTeX has no command for", () => {
       expect(shapes("Alpha omicron")).toEqual([
         { kind: "word", name: "Alpha" },
@@ -159,15 +150,6 @@ describe("lexer", () => {
       expect(shapes("pi1")).toEqual([{ kind: "word", name: "pi", subscript: "1" }]);
     });
 
-    it("rejects a subscript on an operator", () => {
-      expect(errors("sqrt2")).toEqual(["the operator `sqrt` can't take a subscript; did you mean `2 sqrt`?"]);
-    });
-
-    it("rejects letters after a glued subscript", () => {
-      expect(errors("x1y")).toEqual([
-        "`x1y`: glued digits after letters are a subscript and must end the token (`x1` → x₁)",
-      ]);
-    });
   });
 
   describe("symbols", () => {
@@ -177,13 +159,6 @@ describe("lexer", () => {
       ]);
     });
 
-    it("requires whitespace between tokens", () => {
-      expect(errors("4ac-")).toEqual(["`4ac-` needs spaces: tokens are separated by whitespace"]);
-    });
-
-    it("rejects symbols that aren't in the language yet", () => {
-      expect(errors("<=")).toEqual(["unknown symbol `<=`"]);
-    });
   });
 
   describe("escape hatch", () => {
@@ -206,16 +181,6 @@ describe("lexer", () => {
       ]);
     });
 
-    it("rejects a label split by a space", () => {
-      expect(errors("\\label{eq: energy}")).toEqual([
-        "a label is written `\\label{name}`, with no spaces in the name",
-        "unknown symbol `energy}`",
-      ]);
-    });
-
-    it("rejects a lone backslash", () => {
-      expect(errors("\\")).toEqual(["a lone `\\` is not a LaTeX command"]);
-    });
   });
 
   describe("quoted text", () => {
@@ -238,13 +203,6 @@ describe("lexer", () => {
       ]);
     });
 
-    it("rejects a string with no closing quote", () => {
-      expect(errors('x "if')).toEqual(['unterminated string: missing the closing "']);
-    });
-
-    it("rejects a string glued to the next token", () => {
-      expect(errors('"if"x')).toEqual(["a string must be followed by a space"]);
-    });
   });
 
   it("reports every bad chunk and keeps lexing", () => {
