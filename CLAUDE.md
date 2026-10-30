@@ -29,7 +29,7 @@ The tool converts a whole `.rtex` file to `.tex`: `npm run build`, then `node di
 - `npm test`: run the tests once (Vitest). `npm run test:watch` reruns on change.
 - `npm run typecheck`: type-check `src/` and `test/` (`tsconfig.json`, no output).
 - `npm run build`: compile `src/` to `dist/` (`tsconfig.build.json`).
-- Releases: bump `version` in `package.json`, then push tag `v<version>`. `.github/workflows/release.yml` checks the tag matches, tests, runs `npm pack`, and attaches `rpn-typesetter.tgz` to a GitHub Release. Authors install and update with `npm install -g https://github.com/vedoge/rpn-typesetter/releases/latest/download/rpn-typesetter.tgz`. Installing from git directly fails (npm doesn't install dev dependencies for the `prepare` build in global git installs).
+- Releases: bump `version` in `package.json`, then push tag `v<version>`, or run the Release workflow on `main` by hand (`workflow_dispatch`; it creates the tag). This cloud session can't push tags, so it uses the manual run. `.github/workflows/release.yml` checks the tag matches, tests, runs `npm pack`, and attaches `rpn-typesetter.tgz` to a GitHub Release. Authors install and update with `npm install -g https://github.com/vedoge/rpn-typesetter/releases/latest/download/rpn-typesetter.tgz`. Installing from git directly fails (npm doesn't install dev dependencies for the `prepare` build in global git installs).
 
 Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.test.ts`.
 

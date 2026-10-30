@@ -98,4 +98,4 @@ npm link            # use your working copy as the rpn-typesetter command
 
 With `pdflatex` installed, `npm test` also compiles every expected output in the shared cases with real LaTeX. CI runs everything on every push and typesets `examples/demo.rtex`.
 
-To release, bump `version` in `package.json`, commit, and push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`). The release workflow tests, packs, and publishes `rpn-typesetter.tgz` to GitHub Releases, which is what the install command fetches. (Installing straight from git with `npm install -g github:…` doesn't work: npm skips the build step's dependencies for global git installs.)
+To release, bump `version` in `package.json`, commit to `main`, and either push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`) or run the Release workflow by hand on `main` from the Actions tab, which tags the commit itself. The release workflow tests, packs, and publishes `rpn-typesetter.tgz` to GitHub Releases, which is what the install command fetches. (Installing straight from git with `npm install -g github:…` doesn't work: npm skips the build step's dependencies for global git installs.)

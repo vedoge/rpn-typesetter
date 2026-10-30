@@ -1,12 +1,17 @@
 name: Release
 
-# Pushing a tag like v0.1.0 builds the package and attaches it to a GitHub
-# Release as rpn-typesetter.tgz, so authors can install or update with
+# Builds the package and attaches it to a GitHub Release as
+# rpn-typesetter.tgz, so authors can install or update with
 #   npm install -g https://github.com/vedoge/rpn-typesetter/releases/latest/download/rpn-typesetter.tgz
+#
+# Either push a tag like v0.1.0 matching package.json's version, or run this
+# workflow by hand on main ("Run workflow"): it then tags the commit
+# v<version> itself.
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -23,8 +28,13 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - name: Check the tag matches package.json
-        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+      - name: Work out the tag
+        run: |
+          tag="v$(node -p 'require("./package.json").version')"
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$tag" != "$GITHUB_REF_NAME" ]; then
+            echo "tag $GITHUB_REF_NAME doesn't match package.json ($tag)"; exit 1
+          fi
+          echo "TAG=$tag" >> "$GITHUB_ENV"
       - name: Pack
         run: |
           npm pack
@@ -32,4 +42,4 @@ jobs:
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" rpn-typesetter.tgz --title "$GITHUB_REF_NAME" --generate-notes
+        run: gh release create "$TAG" rpn-typesetter.tgz --target "$GITHUB_SHA" --title "$TAG" --generate-notes
