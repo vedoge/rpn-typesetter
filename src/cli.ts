@@ -27,12 +27,22 @@ function format(file: string, document: string, severity: string, d: Diagnostic)
 }
 
 /** Runs the tool. Returns the exit code. */
+/** The installed version, from package.json (next to dist/ when installed, next to src/ in a clone). */
+export function version(): string {
+  const pkg: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  return typeof pkg === "object" && pkg !== null && "version" in pkg ? String(pkg.version) : "unknown";
+}
+
 export function main(args: readonly string[], log: (line: string) => void = console.error): number {
+  if (args.length === 1 && args[0] === "--version") {
+    console.log(version());
+    return 0;
+  }
   const fromLatexmk = args[0] === "--latexmk";
   const [source, ...rest] = fromLatexmk ? args.slice(1) : args;
   if (fromLatexmk && source !== undefined && rest.length === 0 && !source.endsWith(".rtex")) return 0;
   if (source === undefined || rest.length > 0 || !source.endsWith(".rtex")) {
-    log("usage: rpn-typesetter [--latexmk] <file.rtex>");
+    log("usage: rpn-typesetter [--latexmk] <file.rtex>   or   rpn-typesetter --version");
     return 2;
   }
   if (!existsSync(source)) {

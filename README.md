@@ -19,20 +19,26 @@ It's experimental: the language is still being designed (see [`docs/design.md`](
 You need Node.js 22 or later and a TeX distribution with `latexmk` (MacTeX and TeX Live both have it).
 
 ```sh
-git clone https://github.com/vedoge/rpn-typesetter
-cd rpn-typesetter
-npm ci
-npm run build
-npm link        # puts the rpn-typesetter command on your PATH
+npm install -g https://github.com/vedoge/rpn-typesetter/releases/latest/download/rpn-typesetter.tgz
+rpn-typesetter --version
 ```
+
+To update, run the same `npm install -g …` command again; it always fetches the latest release. To remove it, `npm uninstall -g rpn-typesetter`.
+
+Then tell `latexmk` about it, once, by adding this line to `~/.latexmkrc` (create the file if it doesn't exist):
+
+```perl
+$pdflatex = 'rpn-typesetter --latexmk %S && pdflatex %O %R.tex';
+```
+
+With `--latexmk`, the tool converts `.rtex` files and leaves ordinary `.tex` files alone, so your other documents build exactly as before. If you don't already build PDFs by default, add `$pdf_mode = 1;` too, or run `latexmk -pdf`. To set it up for one project only, copy [`examples/latexmkrc`](examples/latexmkrc) next to your document as `.latexmkrc` instead.
 
 ## Use
 
 1. Write your document as `paper.rtex`: ordinary LaTeX, with RPN math wherever you want it.
-2. Copy [`examples/latexmkrc`](examples/latexmkrc) next to it as `.latexmkrc`.
-3. Run `latexmk paper.rtex`, or `latexmk -pvc paper.rtex` to rebuild on every save.
+2. Run `latexmk paper.rtex`, or `latexmk -pvc paper.rtex` to rebuild on every save.
 
-Each pdfLaTeX pass first runs `rpn-typesetter paper.rtex`, which writes `paper.tex`. Don't edit `paper.tex`: it's regenerated every time, and the tool refuses to overwrite a `paper.tex` it didn't write. Errors point at your `.rtex` file:
+Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`. Don't edit `paper.tex`: it's regenerated every time, and the tool refuses to overwrite a `paper.tex` it didn't write. Errors point at your `.rtex` file:
 
 ```
 paper.rtex:12:8: error: `+` needs 2 values, but only 1 is available
@@ -82,9 +88,14 @@ The full set of rules and the reasons behind them are in [`docs/design.md`](docs
 ## Develop
 
 ```sh
+git clone https://github.com/vedoge/rpn-typesetter
+cd rpn-typesetter
+npm ci              # also builds dist/
 npm test            # unit tests and the shared cases in test/cases/
 npm run typecheck
-npm run build
+npm link            # use your working copy as the rpn-typesetter command
 ```
 
 With `pdflatex` installed, `npm test` also compiles every expected output in the shared cases with real LaTeX. CI runs everything on every push and typesets `examples/demo.rtex`.
+
+To release, bump `version` in `package.json`, commit, and push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`). The release workflow tests, packs, and publishes `rpn-typesetter.tgz` to GitHub Releases, which is what the install command fetches. (Installing straight from git with `npm install -g github:…` doesn't work: npm skips the build step's dependencies for global git installs.)

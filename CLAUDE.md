@@ -23,12 +23,13 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 
 ## Current state
 
-The tool converts a whole `.rtex` file to `.tex`: `npm run build`, then `node dist/cli.js paper.rtex` (installed as the `rpn-typesetter` command). Authors run `latexmk paper.rtex` with `examples/latexmkrc` copied in as `.latexmkrc`: it wraps the pdfLaTeX command so each pass runs `rpn-typesetter %S` first. `README.md` has install and usage. Manual `br` breaks work; measured (automatic) breaks don't exist yet.
+The tool converts a whole `.rtex` file to `.tex`: `npm run build`, then `node dist/cli.js paper.rtex` (installed as the `rpn-typesetter` command). Authors run `latexmk paper.rtex`; a `$pdflatex` line in `~/.latexmkrc` (or a project `.latexmkrc`, see `examples/latexmkrc`) makes each pdfLaTeX pass run `rpn-typesetter --latexmk %S` first, which converts `.rtex` files and ignores `.tex` ones. `README.md` has install and usage. Manual `br` breaks work; measured (automatic) breaks don't exist yet.
 
 - `npm install`: install dev dependencies (TypeScript, Vitest).
 - `npm test`: run the tests once (Vitest). `npm run test:watch` reruns on change.
 - `npm run typecheck`: type-check `src/` and `test/` (`tsconfig.json`, no output).
 - `npm run build`: compile `src/` to `dist/` (`tsconfig.build.json`).
+- Releases: bump `version` in `package.json`, then push tag `v<version>`. `.github/workflows/release.yml` checks the tag matches, tests, runs `npm pack`, and attaches `rpn-typesetter.tgz` to a GitHub Release. Authors install and update with `npm install -g https://github.com/vedoge/rpn-typesetter/releases/latest/download/rpn-typesetter.tgz`. Installing from git directly fails (npm doesn't install dev dependencies for the `prepare` build in global git installs).
 
 Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.test.ts`.
 

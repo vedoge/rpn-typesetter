@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
-import { guardPrefix, isMainModule, main } from "../src/cli.js";
+import { guardPrefix, isMainModule, main, version } from "../src/cli.js";
 
 describe("command-line tool", () => {
   let dir: string;
@@ -57,10 +57,14 @@ describe("command-line tool", () => {
     expect(logged[0]).toMatch(/paper\.rtex:1:4: warning: 2 values were left on the stack/);
   });
 
+  it("knows its version", () => {
+    expect(version()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
   it("explains its usage", () => {
     expect(run()).toBe(2);
     expect(run("paper.tex")).toBe(2);
-    expect(logged[0]).toBe("usage: rpn-typesetter [--latexmk] <file.rtex>");
+    expect(logged[0]).toBe("usage: rpn-typesetter [--latexmk] <file.rtex>   or   rpn-typesetter --version");
   });
 
   it("converts a .rtex file with --latexmk, and leaves any other file alone", () => {
