@@ -3,7 +3,7 @@
 // Invalid RPN stops it with exit code 1 and nothing written, so a
 // `latexmk` command that runs it first never reaches LaTeX.
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Diagnostic } from "./lexer.js";
@@ -50,6 +50,20 @@ export function main(args: readonly string[], log: (line: string) => void = cons
   return 0;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+/**
+ * Whether the script started as `script` (process.argv[1]) is the module at
+ * `moduleUrl`. `npm link` and global installs start it through a symlink, so
+ * compare real paths, not the paths as given.
+ */
+export function isMainModule(moduleUrl: string, script: string | undefined): boolean {
+  if (script === undefined) return false;
+  try {
+    return pathToFileURL(realpathSync(script)).href === moduleUrl;
+  } catch {
+    return false;
+  }
+}
+
+if (isMainModule(import.meta.url, process.argv[1])) {
   process.exitCode = main(process.argv.slice(2));
 }

@@ -1,8 +1,9 @@
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
-import { guardPrefix, main } from "../src/cli.js";
+import { guardPrefix, isMainModule, main } from "../src/cli.js";
 
 describe("command-line tool", () => {
   let dir: string;
@@ -60,5 +61,16 @@ describe("command-line tool", () => {
     expect(run()).toBe(2);
     expect(run("paper.tex")).toBe(2);
     expect(logged[0]).toBe("usage: rpn-typesetter <file.rtex>");
+  });
+
+  it("recognises itself when started through a symlink, as npm link installs it", () => {
+    const script = join(dir, "cli.js");
+    writeFileSync(script, "");
+    symlinkSync(script, join(dir, "rpn-typesetter"));
+    const url = pathToFileURL(script).href;
+    expect(isMainModule(url, script)).toBe(true);
+    expect(isMainModule(url, join(dir, "rpn-typesetter"))).toBe(true);
+    expect(isMainModule(url, join(dir, "something-else.js"))).toBe(false);
+    expect(isMainModule(url, undefined)).toBe(false);
   });
 });
