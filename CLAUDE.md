@@ -23,7 +23,7 @@ The user is new to language implementation (lexing, parsing, ASTs, code generati
 
 ## Current state
 
-The tool converts a whole `.rtex` file to `.tex`: `npm run build`, then `node dist/cli.js paper.rtex` (installed as the `rpn-typesetter` command). Manual `br` breaks work; measured (automatic) breaks and the `.latexmkrc` hookup don't exist yet.
+The tool converts a whole `.rtex` file to `.tex`: `npm run build`, then `node dist/cli.js paper.rtex` (installed as the `rpn-typesetter` command). Authors run `latexmk paper.rtex` with `examples/latexmkrc` copied in as `.latexmkrc`: it wraps the pdfLaTeX command so each pass runs `rpn-typesetter %S` first. `README.md` has install and usage. Manual `br` breaks work; measured (automatic) breaks don't exist yet.
 
 - `npm install`: install dev dependencies (TypeScript, Vitest).
 - `npm test`: run the tests once (Vitest). `npm run test:watch` reruns on change.
@@ -32,7 +32,7 @@ The tool converts a whole `.rtex` file to `.tex`: `npm run build`, then `node di
 
 Layout: source in `src/` (entry point `src/index.ts`), tests in `test/` as `*.test.ts`.
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request. The `checks` job typechecks, tests and builds. The `latex` job installs TeX Live, so `test/latex.test.ts` runs for real, then converts `examples/demo.rtex` and typesets it with `latexmk`; the PDF is uploaded as the `demo` artifact. Generated `examples/*.tex` and LaTeX's own files are git-ignored.
+CI (`.github/workflows/ci.yml`) runs on every push and pull request. The `checks` job typechecks, tests and builds. The `latex` job installs TeX Live, so `test/latex.test.ts` runs for real, then typesets `examples/demo.rtex` through `latexmk` and `examples/latexmkrc`, as an author would; the PDF is uploaded as the `demo` artifact. Generated `examples/*.tex` and LaTeX's own files are git-ignored.
 
 ## Architecture
 

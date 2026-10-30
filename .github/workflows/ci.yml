@@ -49,11 +49,13 @@ jobs:
       - run: npm test
         env:
           REQUIRE_LATEX: "1"
-      - name: Convert and typeset the example
+      - name: Typeset the example through latexmk, as an author would
         run: |
           npm run build
-          node dist/cli.js examples/demo.rtex
-          latexmk -pdf -interaction=nonstopmode -halt-on-error -cd examples/demo.tex
+          npm link
+          cd examples
+          latexmk -interaction=nonstopmode -halt-on-error demo.rtex
+          head -1 demo.tex
       - name: Upload the PDF
         if: always()
         uses: actions/upload-artifact@v4
