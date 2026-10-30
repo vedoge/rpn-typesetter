@@ -4,14 +4,26 @@
   "private": true,
   "description": "LaTeX preprocessor: RPN math in, plain LaTeX out",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vedoge/rpn-typesetter.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "bin": {
     "rpn-typesetter": "dist/cli.js"
   },
+  "files": [
+    "dist",
+    "examples/latexmkrc"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

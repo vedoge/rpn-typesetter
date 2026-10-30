@@ -1,10 +1,15 @@
-# latexmk settings for rpn-typesetter. Copy this file into your project as
-# `.latexmkrc` (latexmk reads it automatically), then run `latexmk paper.rtex`,
-# or `latexmk -pvc paper.rtex` to rebuild whenever paper.rtex changes.
+# latexmk settings for rpn-typesetter.
 #
-# Every pdfLaTeX pass first runs rpn-typesetter, which turns paper.rtex into
-# paper.tex; pdfLaTeX then compiles paper.tex. If any RPN is invalid,
-# rpn-typesetter exits with an error, so pdfLaTeX never runs.
+# Per project: copy this file next to paper.rtex as `.latexmkrc` and run
+# `latexmk paper.rtex` (or `latexmk -pvc paper.rtex` to rebuild on every save).
+#
+# For every project at once: put the $pdflatex line in ~/.latexmkrc instead.
+# `--latexmk` makes rpn-typesetter convert .rtex files and leave ordinary .tex
+# files alone, so your other documents build exactly as before.
+#
+# Every pdfLaTeX pass first turns paper.rtex into paper.tex, then compiles
+# paper.tex. If any RPN is invalid, rpn-typesetter exits with an error, so
+# pdfLaTeX never runs.
 
 $pdf_mode = 1;
-$pdflatex = 'rpn-typesetter %S && pdflatex %O %R.tex';
+$pdflatex = 'rpn-typesetter --latexmk %S && pdflatex %O %R.tex';

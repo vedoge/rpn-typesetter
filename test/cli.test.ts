@@ -60,7 +60,20 @@ describe("command-line tool", () => {
   it("explains its usage", () => {
     expect(run()).toBe(2);
     expect(run("paper.tex")).toBe(2);
-    expect(logged[0]).toBe("usage: rpn-typesetter <file.rtex>");
+    expect(logged[0]).toBe("usage: rpn-typesetter [--latexmk] <file.rtex>");
+  });
+
+  it("converts a .rtex file with --latexmk, and leaves any other file alone", () => {
+    const source = join(dir, "paper.rtex");
+    writeFileSync(source, "$@ a b +$\n");
+    expect(run("--latexmk", source)).toBe(0);
+    expect(readFileSync(join(dir, "paper.tex"), "utf8")).toContain("$ a + b $");
+
+    const plain = join(dir, "other.tex");
+    writeFileSync(plain, "untouched\n");
+    expect(run("--latexmk", plain)).toBe(0);
+    expect(readFileSync(plain, "utf8")).toBe("untouched\n");
+    expect(logged).toEqual([]);
   });
 
   it("recognises itself when started through a symlink, as npm link installs it", () => {

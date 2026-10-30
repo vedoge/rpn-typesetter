@@ -2,6 +2,10 @@
 // The command-line tool: `rpn-typesetter paper.rtex` writes `paper.tex`.
 // Invalid RPN stops it with exit code 1 and nothing written, so a
 // `latexmk` command that runs it first never reaches LaTeX.
+//
+// `rpn-typesetter --latexmk FILE` is for latexmk's pdfLaTeX command: it
+// converts FILE if it's a .rtex file and does nothing otherwise, so one
+// global ~/.latexmkrc line serves .rtex and ordinary .tex projects alike.
 
 import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
@@ -24,9 +28,11 @@ function format(file: string, document: string, severity: string, d: Diagnostic)
 
 /** Runs the tool. Returns the exit code. */
 export function main(args: readonly string[], log: (line: string) => void = console.error): number {
-  const [source, ...rest] = args;
+  const fromLatexmk = args[0] === "--latexmk";
+  const [source, ...rest] = fromLatexmk ? args.slice(1) : args;
+  if (fromLatexmk && source !== undefined && rest.length === 0 && !source.endsWith(".rtex")) return 0;
   if (source === undefined || rest.length > 0 || !source.endsWith(".rtex")) {
-    log("usage: rpn-typesetter <file.rtex>");
+    log("usage: rpn-typesetter [--latexmk] <file.rtex>");
     return 2;
   }
   if (!existsSync(source)) {
