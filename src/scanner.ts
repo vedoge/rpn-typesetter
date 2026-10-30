@@ -8,7 +8,24 @@
 
 import type { Diagnostic } from "./lexer.js";
 import { parse } from "./parser.js";
-import { EmitError, emitEquation, type Layout } from "./emitter.js";
+import {
+  EmitError,
+  breakCandidates,
+  emitEquation,
+  emitPieces,
+  findBreak,
+  isAligningOperator,
+  leftmostRelation,
+  type Layout,
+} from "./emitter.js";
+import type { Equation } from "./parser.js";
+import {
+  chooseBreaks,
+  measurementId,
+  measuringLatex,
+  measuringPreamble,
+  type Measurement,
+} from "./breaking.js";
 
 /** Math environments the scanner recognises, and their layout. */
 const mathEnvironments: Readonly<Record<string, Layout>> = {
@@ -49,7 +66,15 @@ interface Region {
 }
 
 /** Converts a whole `.rtex` document to LaTeX. */
-export function convert(document: string): ConvertResult {
+export interface ConvertOptions {
+  /** Widths LaTeX measured on the last run, read from the .aux file (see breaking.ts). */
+  readonly measurements?: ReadonlyMap<string, Measurement>;
+}
+
+export function convert(document: string, options: ConvertOptions = {}): ConvertResult {
+  const measurements = options.measurements ?? new Map<string, Measurement>();
+  const occurrences = new Map<string, number>(); // how often each equation's RPN has appeared
+  let measuring = false; // whether any equation is measured, so the preamble needs the macros
   const errors: Diagnostic[] = [];
   const warnings: Diagnostic[] = [];
   const pieces: string[] = [];
@@ -83,9 +108,41 @@ export function convert(document: string): ConvertResult {
       continue;
     }
 
+    // Equations in a display that holds several lines are measured, and broken
+    // once their widths are known, unless the author breaks them by hand.
+    // Measuring needs macros in the preamble, so only documents with
+    // \documentclass are measured.
+    const emit = (eq: Equation): string => {
+      const candidates = breakCandidates(eq.body);
+      if (region.layout === "single" || packagesAt === undefined || candidates.length === 0 || findBreak(eq.body)) {
+        return emitEquation(eq, region.layout);
+      }
+      const key = rpn.slice(eq.start, eq.end).trim().split(/\s+/).join(" ");
+      const occurrence = occurrences.get(key) ?? 0;
+      occurrences.set(key, occurrence + 1);
+      const id = measurementId(key, occurrence);
+      const piecesLatex = emitPieces(eq.body, candidates);
+      measuring = true;
+
+      const measured = measurements.get(id);
+      let breaks = new Set<typeof candidates[number]>();
+      if (measured && measured.pieces.length === piecesLatex.length) {
+        const alignAt = region.layout === "aligned" ? leftmostRelation(eq.body) : undefined;
+        const at = alignAt === undefined ? -1 : candidates.indexOf(alignAt);
+        const chosen = chooseBreaks(measured, {
+          aligned: region.layout === "aligned",
+          numbered: !region.name.endsWith("*") && !eq.notag,
+          relation: candidates.map((c) => c.kind === "apply" && isAligningOperator(c.operator)),
+          alignAt: at === -1 ? undefined : at,
+        });
+        breaks = new Set(chosen.map((k) => candidates[k]!));
+      }
+      return measuringLatex(id, piecesLatex) + " " + emitEquation(eq, region.layout, { breaks });
+    };
+
     let latex: string;
     try {
-      latex = result.equations.map((eq) => emitEquation(eq, region.layout)).join(" \\\\ ");
+      latex = result.equations.map(emit).join(" \\\\ ");
     } catch (error) {
       if (!(error instanceof EmitError)) throw error;
       errors.push(shift(error.diagnostic));
@@ -101,9 +158,9 @@ export function convert(document: string): ConvertResult {
     // The offset is in the original document, and nothing before
     // \documentclass is ever rewritten, so it's still valid here.
     const missing = requiredPackages.filter((pkg) => !loadsPackage(document, pkg));
-    if (missing.length > 0) {
-      output = `${output.slice(0, packagesAt)}\\usepackage{${missing.join(",")}}${output.slice(packagesAt)}`;
-    }
+    const packages = missing.length > 0 ? `\\usepackage{${missing.join(",")}}` : "";
+    const macros = measuring ? measuringPreamble : "";
+    output = `${output.slice(0, packagesAt)}${packages}${macros}${output.slice(packagesAt)}`;
   }
   return { output, errors, warnings };
 }

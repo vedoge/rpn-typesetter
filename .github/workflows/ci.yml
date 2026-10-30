@@ -56,6 +56,9 @@ jobs:
           cd examples
           latexmk -interaction=nonstopmode -halt-on-error demo.rtex
           head -1 demo.tex
+          # The long series has no br, so a line break in it means the
+          # measure-then-break loop ran through latexmk.
+          grep -n 'rpnmeasure' demo.tex | grep -q 'qquad' || { echo "the long series wasn't broken"; grep -n 'rpnmeasure' demo.tex; exit 1; }
       - name: Upload the PDF
         if: always()
         uses: actions/upload-artifact@v4

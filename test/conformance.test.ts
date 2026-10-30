@@ -4,6 +4,7 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { toLatex, type Layout } from "../src/emitter.js";
+import { readMeasurements } from "../src/breaking.js";
 import { convert, locate } from "../src/scanner.js";
 import { all, readCases, single } from "./cases.js";
 
@@ -32,7 +33,8 @@ describe("documents.cases", () => {
       const document = single(c, "document");
       if (document === undefined) throw new Error("a document case needs `document`");
 
-      const result = convert(document);
+      const aux = single(c, "aux");
+      const result = convert(document, aux === undefined ? {} : { measurements: readMeasurements(aux) });
       const at = (d: { start: number; message: string }) => {
         const { line, column } = locate(document, d.start);
         return `${line}:${column}: ${d.message}`;

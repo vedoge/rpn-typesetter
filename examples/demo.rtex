@@ -24,6 +24,12 @@ A derivation, broken at its relations:
   x a b + 2 ^ = a 2 ^ 2ab + b 2 ^ + = br
 \end{align}
 
+A long series, broken automatically by measuring (no \verb|br|):
+\begin{align}@
+  e x ^ 1 x + x 2 ^ 2 ! / + x 3 ^ 3 ! / + x 4 ^ 4 ! / + x 5 ^ 5 ! / + x 6 ^ 6 ! /
+  + x 7 ^ 7 ! / + x 8 ^ 8 ! / + x 9 ^ 9 ! / + x 10 ^ 10 ! / + x 11 ^ 11 ! / + =
+\end{align}
+
 A tensor $@ T mu ^ nu ssc$, a matrix $@ [ a b ; c d mat$,
 and a piecewise function
 \[@ f [ 1 x 0 = ; 0 "otherwise" cases = \]

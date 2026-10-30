@@ -47,6 +47,7 @@ The errors, warnings and equations must match exactly, with none missing and non
 | Key | Meaning |
 |---|---|
 | `document` | The `.rtex` source. |
+| `aux` | The `.aux` file LaTeX wrote on the previous run, with the widths it measured. Without it, nothing has been measured yet. |
 | `output` | The converted document, without the guard line the command-line tool adds. |
 | `error` | `line:column: message`, for an expected error. With errors, `output` isn't checked. |
 | `warning` | `line:column: message`, for an expected warning. |

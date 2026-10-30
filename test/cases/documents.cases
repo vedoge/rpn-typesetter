@@ -174,3 +174,101 @@ output:
 ## a file without \documentclass gets nothing
 document: $@ a$
 output: $ a $
+
+# Measured line breaks
+
+## the first run measures, and doesn't break
+document:
+  \documentclass{article}
+  \begin{document}
+  \begin{align}@ x a b + c + d + = \end{align}
+  \end{document}
+output:
+  \documentclass{article}\usepackage{amsmath,amssymb}\makeatletter\providecommand\rpn@w[3]{}\providecommand\rpnmeasure[1]{\begingroup\immediate\write\@auxout{\string\rpn@w{#1}{L}{\the\linewidth}}\setbox\z@\hbox{\normalfont(\theequation)}\immediate\write\@auxout{\string\rpn@w{#1}{N}{\the\wd\z@}}\setbox\z@\hbox{$\qquad$}\immediate\write\@auxout{\string\rpn@w{#1}{Q}{\the\wd\z@}}\endgroup}\providecommand\rpnpiece[3]{\begingroup\setbox\z@\hbox{$\displaystyle#3$}\immediate\write\@auxout{\string\rpn@w{#1}{#2}{\the\wd\z@}}\endgroup}\makeatother
+  \begin{document}
+  \begin{align} \rpnmeasure{9640af62db6d-0}\rpnpiece{9640af62db6d-0}{0}{x}\rpnpiece{9640af62db6d-0}{1}{{}= a}\rpnpiece{9640af62db6d-0}{2}{{}+ b}\rpnpiece{9640af62db6d-0}{3}{{}+ c}\rpnpiece{9640af62db6d-0}{4}{{}+ d} x &= a + b + c + d \end{align}
+  \end{document}
+
+## the next run breaks where the measured pieces stop fitting
+document:
+  \documentclass{article}
+  \begin{document}
+  \begin{align}@ x a b + c + d + = \end{align}
+  \end{document}
+aux:
+  \rpn@w{9640af62db6d-0}{L}{100.0pt}
+  \rpn@w{9640af62db6d-0}{N}{10.0pt}
+  \rpn@w{9640af62db6d-0}{Q}{20.0pt}
+  \rpn@w{9640af62db6d-0}{0}{10.0pt}
+  \rpn@w{9640af62db6d-0}{1}{30.0pt}
+  \rpn@w{9640af62db6d-0}{2}{30.0pt}
+  \rpn@w{9640af62db6d-0}{3}{30.0pt}
+  \rpn@w{9640af62db6d-0}{4}{30.0pt}
+output:
+  \documentclass{article}\usepackage{amsmath,amssymb}\makeatletter\providecommand\rpn@w[3]{}\providecommand\rpnmeasure[1]{\begingroup\immediate\write\@auxout{\string\rpn@w{#1}{L}{\the\linewidth}}\setbox\z@\hbox{\normalfont(\theequation)}\immediate\write\@auxout{\string\rpn@w{#1}{N}{\the\wd\z@}}\setbox\z@\hbox{$\qquad$}\immediate\write\@auxout{\string\rpn@w{#1}{Q}{\the\wd\z@}}\endgroup}\providecommand\rpnpiece[3]{\begingroup\setbox\z@\hbox{$\displaystyle#3$}\immediate\write\@auxout{\string\rpn@w{#1}{#2}{\the\wd\z@}}\endgroup}\makeatother
+  \begin{document}
+  \begin{align} \rpnmeasure{9640af62db6d-0}\rpnpiece{9640af62db6d-0}{0}{x}\rpnpiece{9640af62db6d-0}{1}{{}= a}\rpnpiece{9640af62db6d-0}{2}{{}+ b}\rpnpiece{9640af62db6d-0}{3}{{}+ c}\rpnpiece{9640af62db6d-0}{4}{{}+ d} x &= a + b \notag \\ &\qquad + c \notag \\ &\qquad + d \end{align}
+  \end{document}
+
+## an unnumbered display has more room
+document:
+  \documentclass{article}
+  \begin{document}
+  \begin{multline*}@ a b + c + d + \end{multline*}
+  \end{document}
+aux:
+  \rpn@w{b6f65bf63548-0}{L}{100.0pt}
+  \rpn@w{b6f65bf63548-0}{N}{10.0pt}
+  \rpn@w{b6f65bf63548-0}{Q}{20.0pt}
+  \rpn@w{b6f65bf63548-0}{0}{30.0pt}
+  \rpn@w{b6f65bf63548-0}{1}{30.0pt}
+  \rpn@w{b6f65bf63548-0}{2}{30.0pt}
+  \rpn@w{b6f65bf63548-0}{3}{30.0pt}
+output:
+  \documentclass{article}\usepackage{amsmath,amssymb}\makeatletter\providecommand\rpn@w[3]{}\providecommand\rpnmeasure[1]{\begingroup\immediate\write\@auxout{\string\rpn@w{#1}{L}{\the\linewidth}}\setbox\z@\hbox{\normalfont(\theequation)}\immediate\write\@auxout{\string\rpn@w{#1}{N}{\the\wd\z@}}\setbox\z@\hbox{$\qquad$}\immediate\write\@auxout{\string\rpn@w{#1}{Q}{\the\wd\z@}}\endgroup}\providecommand\rpnpiece[3]{\begingroup\setbox\z@\hbox{$\displaystyle#3$}\immediate\write\@auxout{\string\rpn@w{#1}{#2}{\the\wd\z@}}\endgroup}\makeatother
+  \begin{document}
+  \begin{multline*} \rpnmeasure{b6f65bf63548-0}\rpnpiece{b6f65bf63548-0}{0}{a}\rpnpiece{b6f65bf63548-0}{1}{{}+ b}\rpnpiece{b6f65bf63548-0}{2}{{}+ c}\rpnpiece{b6f65bf63548-0}{3}{{}+ d} a + b + c \\ + d \end{multline*}
+  \end{document}
+
+## measurements that don't match the equation are ignored
+document:
+  \documentclass{article}
+  \begin{document}
+  \begin{multline*}@ a b + c + d + \end{multline*}
+  \end{document}
+aux:
+  \rpn@w{b6f65bf63548-0}{L}{100.0pt}
+  \rpn@w{b6f65bf63548-0}{N}{10.0pt}
+  \rpn@w{b6f65bf63548-0}{Q}{20.0pt}
+  \rpn@w{b6f65bf63548-0}{0}{30.0pt}
+  \rpn@w{b6f65bf63548-0}{1}{30.0pt}
+  \rpn@w{b6f65bf63548-0}{2}{30.0pt}
+output:
+  \documentclass{article}\usepackage{amsmath,amssymb}\makeatletter\providecommand\rpn@w[3]{}\providecommand\rpnmeasure[1]{\begingroup\immediate\write\@auxout{\string\rpn@w{#1}{L}{\the\linewidth}}\setbox\z@\hbox{\normalfont(\theequation)}\immediate\write\@auxout{\string\rpn@w{#1}{N}{\the\wd\z@}}\setbox\z@\hbox{$\qquad$}\immediate\write\@auxout{\string\rpn@w{#1}{Q}{\the\wd\z@}}\endgroup}\providecommand\rpnpiece[3]{\begingroup\setbox\z@\hbox{$\displaystyle#3$}\immediate\write\@auxout{\string\rpn@w{#1}{#2}{\the\wd\z@}}\endgroup}\makeatother
+  \begin{document}
+  \begin{multline*} \rpnmeasure{b6f65bf63548-0}\rpnpiece{b6f65bf63548-0}{0}{a}\rpnpiece{b6f65bf63548-0}{1}{{}+ b}\rpnpiece{b6f65bf63548-0}{2}{{}+ c}\rpnpiece{b6f65bf63548-0}{3}{{}+ d} a + b + c + d \end{multline*}
+  \end{document}
+
+## an equation broken by hand isn't measured
+document:
+  \documentclass{article}
+  \begin{document}
+  \begin{multline*}@ a b + c + br d + \end{multline*}
+  \end{document}
+output:
+  \documentclass{article}\usepackage{amsmath,amssymb}
+  \begin{document}
+  \begin{multline*} a + b \\ + c + d \end{multline*}
+  \end{document}
+
+## a one-line display isn't measured
+document:
+  \documentclass{article}
+  \begin{document}
+  \[@ a b + c + d + \]
+  \end{document}
+output:
+  \documentclass{article}\usepackage{amsmath,amssymb}
+  \begin{document}
+  \[ a + b + c + d \]
+  \end{document}

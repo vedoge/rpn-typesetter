@@ -80,7 +80,8 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 In a display environment:
 
 - `;` separates equations. In `align` they line up at their relations.
-- `br` after an operator breaks the line before it (`a b + c + br` puts `+ c` on a new line).
+- Long equations in `multline`, `align` and `gather` are broken automatically. LaTeX measures them on one run, and the next run (which `latexmk` does for you) breaks them where they stop fitting.
+- `br` after an operator breaks the line before it by hand (`a b + c + br` puts `+ c` on a new line). An equation with a `br` isn't broken automatically.
 - `\label{…}` and `\notag` go inside the RPN, with the equation they belong to.
 
 The full set of rules and the reasons behind them are in [`docs/design.md`](docs/design.md).

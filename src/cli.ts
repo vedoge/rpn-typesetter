@@ -11,6 +11,7 @@ import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { basename } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Diagnostic } from "./lexer.js";
+import { readMeasurements } from "./breaking.js";
 import { convert, locate } from "./scanner.js";
 
 /** The start of the guard line at the top of every generated file. */
@@ -26,13 +27,13 @@ function format(file: string, document: string, severity: string, d: Diagnostic)
   return `${file}:${line}:${column}: ${severity}: ${d.message}`;
 }
 
-/** Runs the tool. Returns the exit code. */
 /** The installed version, from package.json (next to dist/ when installed, next to src/ in a clone). */
 export function version(): string {
   const pkg: unknown = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   return typeof pkg === "object" && pkg !== null && "version" in pkg ? String(pkg.version) : "unknown";
 }
 
+/** Runs the tool. Returns the exit code. */
 export function main(args: readonly string[], log: (line: string) => void = console.error): number {
   if (args.length === 1 && args[0] === "--version") {
     console.log(version());
@@ -56,8 +57,12 @@ export function main(args: readonly string[], log: (line: string) => void = cons
     return 2;
   }
 
+  // Widths LaTeX measured on its last run, so long equations can be broken.
+  const aux = source.replace(/\.rtex$/, ".aux");
+  const measurements = existsSync(aux) ? readMeasurements(readFileSync(aux, "utf8")) : new Map();
+
   const document = readFileSync(source, "utf8");
-  const { output, errors, warnings } = convert(document);
+  const { output, errors, warnings } = convert(document, { measurements });
   for (const w of warnings) log(format(source, document, "warning", w));
   for (const e of errors) log(format(source, document, "error", e));
   if (errors.length > 0) return 1;

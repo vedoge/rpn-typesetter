@@ -114,6 +114,13 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Where `align` lines up | At the leftmost relation of a relation chain (`a &\leq b < c`); at the root for an arrow (`a = b &\implies c = d`), never inside its brackets. A `br` before any relation or arrow starts the line with `&` | The emitter does this now. |
 | Bodies of limits and max/min | Bracketed like a summand: only if it's a sum or looser, so lim (f + g) but lim sin x / x. `sup`/`inf` bracket their argument like a function | The emitter does this now. |
 | Factorial brackets | The operand is bracketed unless it's an atom or a subscripted atom: (n + 1)!, (2n)!, (n!)!, but n₁! | The emitter does this now. |
+| Which displays break by measuring | `multline`, `align`-like and `gather`-like environments, starred or not. Not `equation`, `\[…\]` or inline math, where a too-long formula is left to LaTeX's overfull-box warning | The tool does this now (question 1 of measured breaks). |
+| Where a measured break may go | Before a relation, arrow, `+`, `-`, `and` or `or` at the top level: not inside brackets or boxes, not between factors | The tool does this now (question 2). Breaking inside brackets would use the `\left( … \right.` form already decided. |
+| How breaks are chosen | First fit: fill each line with as many pieces as fit, then break. No preference for relations over `+` | The tool does this now (question 3). Best fit (even lines, like TeX's paragraphs) could replace it. |
+| `br` turns measuring off | An equation with any manual `br` is left exactly as the author broke it | The tool does this now (question 4). |
+| Usable width | `\linewidth`, less 1em of margin, less the equation number and 1em more when numbered. In `align`, a continued line starts after the left-hand side, plus `\qquad` unless it starts with a relation | The tool does this now (question 5). |
+| How pieces are measured | Each piece separately, in display style, after `{}` so its operator is spaced as in the full equation; a line's width is the sum | The tool does this now (question 6). Slightly off at the joins. |
+| Measurement details | IDs are the first 12 hex digits of the MD5 of the equation's RPN, with whitespace collapsed (LuaTeX has MD5 built in). Only documents with `\documentclass` are measured, since the macros go in the preamble. The `.aux` is read from next to the `.rtex`, so `latexmk -outdir` and `\include`d files aren't covered yet | The tool does this now. |
 | Prime | `f'` glued | Not built yet. |
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
 
