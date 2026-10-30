@@ -46,13 +46,23 @@ const values: Record<string, string> = {
 };
 
 /**
- * Functions LaTeX has a command for (\sin, \log, …) that take one argument.
- * `lim`, `max` and the rest also have commands, but their arity is open.
+ * Functions LaTeX has a command for (\sin, \log, \sup, …) that take one
+ * argument. `gcd` and `hom` also have commands, but their arity is open.
  */
 export const functions: ReadonlySet<string> = new Set([
   "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc",
-  "deg", "det", "dim", "exp", "ker", "lg", "ln", "log", "Pr", "sec", "sin",
-  "sinh", "tan", "tanh",
+  "deg", "det", "dim", "exp", "inf", "ker", "lg", "ln", "log", "Pr", "sec", "sin",
+  "sinh", "sup", "tan", "tanh",
+]);
+
+/**
+ * Operators written with a subscript, taking two values: what goes underneath,
+ * then the body. `x 0 -> f lim` → lim_{x→0} f. Each maps to its LaTeX.
+ */
+export const subscripted: ReadonlyMap<string, string> = new Map([
+  ["lim", "\\lim"], ["liminf", "\\liminf"], ["limsup", "\\limsup"],
+  ["max", "\\max"], ["min", "\\min"],
+  ["argmax", "\\operatorname*{arg\\,max}"], ["argmin", "\\operatorname*{arg\\,min}"],
 ]);
 
 /**
@@ -98,9 +108,8 @@ const operators: Record<string, Arity> = {
     [...relations.keys(), ...arrows.keys()].filter((name) => /^[A-Za-z]/.test(name)).map((name) => [name, 2]),
   ),
   ...Object.fromEntries([...functions].map((name) => [name, 1])),
-  gcd: "undecided", hom: "undecided", inf: "undecided", lim: "undecided",
-  liminf: "undecided", limsup: "undecided", max: "undecided",
-  min: "undecided", sup: "undecided",
+  ...Object.fromEntries([...subscripted.keys()].map((name) => [name, 2])),
+  gcd: "undecided", hom: "undecided",
 };
 
 export const vocabulary: ReadonlyMap<string, Word> = new Map<string, Word>([

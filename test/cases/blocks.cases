@@ -386,6 +386,57 @@ latex: \sum_{n} (a_{n} + b)
 rpn: 0 pi x sin x int
 latex: \int_{0}^{\pi} \sin x \,dx
 
+# Limits, max and min, sup and inf
+
+## a limit
+rpn: x 0 -> x sin x / lim
+latex: \lim_{x \to 0} \frac{\sin x}{x}
+
+## a limit at infinity
+rpn: n infty -> a n _ lim
+latex: \lim_{n \to \infty} a_{n}
+
+## a limit of a sum gets brackets
+rpn: x 0 -> f g + lim
+latex: \lim_{x \to 0} (f + g)
+
+## liminf and limsup
+rpn: n infty -> a n _ liminf n infty -> a n _ limsup <=
+latex: \liminf_{n \to \infty} a_{n} \leq \limsup_{n \to \infty} a_{n}
+
+## max over a set
+rpn: x S in f max
+latex: \max_{x \in S} f
+
+## min over a set
+rpn: x S in f min
+latex: \min_{x \in S} f
+
+## argmax and argmin
+rpn: x f argmax x f argmin !=
+latex: \operatorname*{arg\,max}_{x} f \neq \operatorname*{arg\,min}_{x} f
+
+## sup of a set
+rpn: A sup
+latex: \sup A
+
+## inf of a set
+rpn: A inf
+latex: \inf A
+
+## sup of a sum gets brackets
+rpn: A B + sup
+latex: \sup (A + B)
+
+## inf is not infty
+rpn: A inf infty <
+latex: \inf A < \infty
+
+## a break inside a limit's subscript
+layout: multline
+rpn: x a b + br -> f lim
+error: `br` can't break a line inside a subscript
+
 # Variadic operators
 
 ## a matrix
@@ -690,5 +741,9 @@ rpn: a ;
 error: nothing follows this `;`
 
 ## an operator whose arity isn't decided
-rpn: x lim
-error: `lim` is reserved, but how many values it takes isn't decided yet
+rpn: a b gcd
+error: `gcd` is reserved, but how many values it takes isn't decided yet
+
+## lim needs an approach and a body
+rpn: f lim
+error: `lim` needs 2 values, but only 1 is available

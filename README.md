@@ -62,6 +62,8 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 | `x reals in` · `a b approx` | x ∈ ℝ · a ≈ b (relations by name) |
 | `p q and r or s =>` | p ∧ q ∨ r ⇒ s (also `<=>`, `not`) |
 | `x exists` · `x forall` | ∃x · ∀x |
+| `x 0 -> x sin x / lim` | lim as x → 0 of sin x / x (also `liminf`, `limsup`) |
+| `x S in f max` · `A sup` | max over x ∈ S of f (also `min`, `argmax`, `argmin`) · sup A (also `inf`) |
 | `n a n _ sum` | ∑ₙ aₙ |
 | `n 1 = infty 1 n 2 ^ / ser` | ∑ from n=1 to ∞ of 1/n² |
 | `0 pi x sin x int` | ∫₀^π sin x dx |

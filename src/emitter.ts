@@ -11,7 +11,7 @@
 
 import { parse, type Equation, type Node } from "./parser.js";
 import type { Diagnostic, Span } from "./lexer.js";
-import { arrows, functions, relations } from "./vocabulary.js";
+import { arrows, functions, relations, subscripted } from "./vocabulary.js";
 
 /**
  * How the surrounding math lays out equations, which decides what a `br`
@@ -71,7 +71,9 @@ const infixLatex: ReadonlyMap<string, string> = new Map([
 /** Operators an aligned layout lines up at, and that start a line with `&` after a break. */
 const isAligning = (op: string): boolean => relations.has(op) || arrows.has(op);
 
-const prefixOperators: ReadonlySet<string> = new Set(["sum", "ser", "int", "exists", "forall", "not", ...functions]);
+const prefixOperators: ReadonlySet<string> = new Set([
+  "sum", "ser", "int", "exists", "forall", "not", ...functions, ...subscripted.keys(),
+]);
 
 function rank(node: Node): number {
   switch (node.kind) {
@@ -224,6 +226,9 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
   if (infixLatex.has(operator)) return infix(node);
 
   if (functions.has(operator)) return `\\${operator} ${argument(a!)}`;
+
+  const under = subscripted.get(operator);
+  if (under !== undefined) return `${under}_{${boxed(a!, "a subscript")}} ${body(b!)}`;
 
   switch (operator) {
     case "*":

@@ -80,6 +80,9 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Decimals:** `3.14` is one number. `3.` and `.5` are errors.
 - **Subscript is `ssc`, or `_`:** binary. `x i ssc` and `x i _` both → x_i, the same tree, just as `^` is the symbol for powers. Like every symbol, `_` needs spaces around it: `x_i` is an error.
 - **Sums:** `sum` takes 2 arguments (index, summand) → ∑ₙ aₙ. `ser` takes 3 (lower bound, upper bound, summand) → ∑ₙ₌₁^∞. **Bounds come first:** `n 1 = infty 1 n 2 ^ / ser`. There's no bare ∑ without an index.
+- **Limits take two values, approach then body:** `x 0 -> x sin x / lim` → lim_{x→0} sin x / x. `liminf` and `limsup` work the same way.
+- **`max`, `min`, `argmax`, `argmin` take a subscript, then a body:** `x S in f max` → max_{x∈S} f. `argmax`/`argmin` are written `\operatorname*{arg\,max}`.
+- **`sup` and `inf` take one value,** like functions: `A sup` → sup A.
 - **Definite integrals:** `int` takes 4 arguments: lower bound, upper bound, integrand, variable. `0 pi x sin x int` → ∫₀^π sin x dx. You type the variable (`x`), and `int` writes the d and its spacing.
 - **Bracket rule (emitter):** wrap a child in brackets if its operator ranks lower than its parent's (BIDMAS precedence), or if it ranks equal, is the right-hand child, and the parent is not associative. So `a b c - -` → a − (b − c) and `a b c + +` → a + b + c.
 - **Layout groups some arguments:** an argument the layout puts in its own box never gets brackets. Fraction numerator and denominator, the `sqrt` radicand, the exponent of `^`, the subscript of `ssc`, and the bounds of `ser`/`int` are all in this group. Arguments that stay on the line next to something (the base of `^`/`ssc`, operands of `+ - *`) follow the bracket rule.
@@ -109,6 +112,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | Breaking between factors | `a b * br` → a ⏎ b; with a digit, a ⏎ ·2 | The emitter does this now. |
 | Arrow chains get brackets on both sides | `p q => r =>` → (p ⇒ q) ⇒ r, and `p q r => =>` → p ⇒ (q ⇒ r). Readers disagree on which way p ⇒ q ⇒ r groups, so neither is left bare | The emitter does this now. |
 | Where `align` lines up | At the leftmost relation of a relation chain (`a &\leq b < c`); at the root for an arrow (`a = b &\implies c = d`), never inside its brackets. A `br` before any relation or arrow starts the line with `&` | The emitter does this now. |
+| Bodies of limits and max/min | Bracketed like a summand: only if it's a sum or looser, so lim (f + g) but lim sin x / x. `sup`/`inf` bracket their argument like a function | The emitter does this now. |
 | Factorial brackets | The operand is bracketed unless it's an atom or a subscripted atom: (n + 1)!, (2n)!, (n!)!, but n₁! | The emitter does this now. |
 | Prime | `f'` glued | Not built yet. |
 | Precedence of `and`/`or` | ∧ ranks above ∨, and both rank below relations (`=`, `<`, …), so `a b = c d = and` → a = b ∧ c = d with no brackets | This is the usual convention in logic. |
@@ -123,7 +127,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 ## Open questions
 
 1. **More relations** (`supseteq`, `parallel`, `mid`, …), as they come up.
-2. **What else is a named word, and arities.** Bold, hat? How many arguments do `lim`, `max`, `min`, `sup`, `inf`, `gcd` and `vec` take? `lim` needs its approach (x→0); `max`/`min` might be variadic.
+2. **What else is a named word, and arities.** Bold, hat? How many arguments do `gcd`, `hom` and `vec` take? How is a bare lim (no subscript), a subscripted sup (sup_n aₙ), or a list max(a, b) written: raw LaTeX, or more words? How is a one-sided target like 0⁺ written?
 3. **Indefinite and multiple integrals.** What word or words for ∫ f dx and ∬ f dx dy?
 4. **Embedding in LaTeX.** How does the tool know an environment is math? It needs a list (amsmath and mathtools environments, starred forms), and perhaps a way for the author to add their own. Where does `\label` go relative to `@`?
 5. **Error details.** Does the tool stop at the first invalid block, or report every one in the file before stopping? What format do messages use (e.g. `paper.rtex:12:8: stack underflow at '+'`, which editors can jump to)? Leftover stack items are technically invalid RPN but were decided as a warning; do they stay a warning? A misspelled word (`sqtr`) silently becomes a product s·q·t·r rather than an error; should the tool warn when a product is one typo away from a reserved word? Should the output keep each line on the same line number as the source, so LaTeX's line numbers point at the right place without a source map?
