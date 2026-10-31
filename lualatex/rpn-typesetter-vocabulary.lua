@@ -77,6 +77,9 @@ M.subscripted = {
   argmax = "\\operatorname*{arg\\,max}", argmin = "\\operatorname*{arg\\,min}",
 }
 
+--- Accents over a value, taking one: `x dot` → ẋ (Newton's notation for derivatives). Each maps to its LaTeX.
+M.accents = { dot = "\\dot", ddot = "\\ddot" }
+
 --- Relations, all binding like `=`, and the LaTeX each writes. Common ones
 --- have an ASCII spelling; every one has a name.
 M.relations = {
@@ -126,6 +129,7 @@ for _, table in ipairs { M.relations, M.arrows } do
 end
 for name in pairs(M.functions) do operators[name] = 1 end
 for name in pairs(M.subscripted) do operators[name] = 2 end
+for name in pairs(M.accents) do operators[name] = 1 end
 operators.gcd, operators.hom = "undecided", "undecided"
 
 --- Every reserved word: `{ role = "value", latex = … }` or `{ role = "operator", arity = … }`.

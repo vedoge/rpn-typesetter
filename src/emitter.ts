@@ -24,7 +24,7 @@
 
 import { parse, type Equation, type Node } from "./parser.js";
 import type { Diagnostic, Span } from "./lexer.js";
-import { arrows, functions, relations, subscripted } from "./vocabulary.js";
+import { accents, arrows, functions, relations, subscripted } from "./vocabulary.js";
 
 /**
  * How the surrounding math lays out equations, which decides what a `br`
@@ -104,15 +104,16 @@ function rank(node: Node): number {
       if (prefixOperators.has(op)) return Rank.prefix;
       if (op === "*" || op === "/") return Rank.multiplicative;
       if (op === "^" || op === "ssc" || op === "!") return Rank.script;
-      return Rank.atom; // sqrt draws its own enclosure
+      return Rank.atom; // sqrt draws its own enclosure, and an accent sits on its argument
     }
     default:
       return Rank.atom; // numbers, letters, raw LaTeX, text, matrices, raw operators
   }
 }
 
-/** The decided atoms: these never get brackets anywhere. */
+/** The decided atoms, and an accent over one (ẋ): these never get brackets anywhere. */
 function isAtom(node: Node): boolean {
+  if (node.kind === "apply" && accents.has(node.operator)) return isAtom(node.args[0]!);
   return ["number", "variable", "named", "raw", "text"].includes(node.kind);
 }
 
@@ -239,6 +240,9 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
   if (infixLatex.has(operator)) return infix(node);
 
   if (functions.has(operator)) return `\\${operator} ${argument(a!)}`;
+
+  const accent = accents.get(operator);
+  if (accent !== undefined) return `${accent}{${boxed(a!, "an accent")}}`;
 
   const under = subscripted.get(operator);
   if (under !== undefined) return `${under}_{${boxed(a!, "a subscript")}} ${body(b!)}`;

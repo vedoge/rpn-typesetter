@@ -78,6 +78,9 @@ export const subscripted: ReadonlyMap<string, string> = new Map([
   ["argmax", "\\operatorname*{arg\\,max}"], ["argmin", "\\operatorname*{arg\\,min}"],
 ]);
 
+/** Accents over a value, taking one: `x dot` → ẋ (Newton's notation for derivatives). Each maps to its LaTeX. */
+export const accents: ReadonlyMap<string, string> = new Map([["dot", "\\dot"], ["ddot", "\\ddot"]]);
+
 /**
  * Relations, all binding like `=`, and the LaTeX each writes. Common ones
  * have an ASCII spelling; every one has a name.
@@ -122,6 +125,7 @@ const operators: Record<string, Arity> = {
   ),
   ...Object.fromEntries([...functions].map((name) => [name, 1])),
   ...Object.fromEntries([...subscripted.keys()].map((name) => [name, 2])),
+  ...Object.fromEntries([...accents.keys()].map((name) => [name, 1])),
   gcd: "undecided", hom: "undecided",
 };
 

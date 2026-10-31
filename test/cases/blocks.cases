@@ -372,6 +372,45 @@ latex: x \to \infty
 rpn: oo
 latex: o o
 
+# Accents
+
+## a dot is a time derivative
+rpn: x dot
+latex: \dot{x}
+
+## two dots are a second derivative
+rpn: x ddot
+latex: \ddot{x}
+
+## Newton's second law for a spring
+rpn: m x ddot * k x * neg =
+latex: m \ddot{x} = -k x
+
+## a dotted letter is an atom as the base of a power
+rpn: x dot 2 ^
+latex: \dot{x}^{2}
+
+## a dotted letter is an atom as a function's argument
+rpn: x dot sin
+latex: \sin \dot{x}
+
+## a dotted letter takes a subscript directly
+rpn: x dot i ssc
+latex: \dot{x}_{i}
+
+## an accent covers its whole argument, without brackets
+rpn: x y + dot
+latex: \dot{x + y}
+
+## an accent over a sum isn't an atom
+rpn: x y + dot 2 ^
+latex: (\dot{x + y})^{2}
+
+## a line can't break inside an accent
+rpn: x y + br dot
+layout: multline
+error: `br` can't break a line inside an accent
+
 # Sums and integrals
 
 ## a series

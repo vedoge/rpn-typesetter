@@ -20,5 +20,5 @@ export { parse, parseTokens } from "./parser.js";
 export { convert, locate, marker } from "./scanner.js";
 export type { ConvertOptions, ConvertResult } from "./scanner.js";
 export type { Equation, Node, ParseResult } from "./parser.js";
-export { arrows, functions, relations, symbols, vocabulary } from "./vocabulary.js";
+export { accents, arrows, functions, relations, symbols, vocabulary } from "./vocabulary.js";
 export type { Arity, Word } from "./vocabulary.js";

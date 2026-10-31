@@ -34,7 +34,7 @@ local parser = require("rpn-typesetter-parser")
 local text = require("rpn-typesetter-text")
 local vocab = require("rpn-typesetter-vocabulary")
 
-local functions, subscripted, relations, arrows = vocab.functions, vocab.subscripted, vocab.relations, vocab.arrows
+local accents, functions, subscripted, relations, arrows = vocab.accents, vocab.functions, vocab.subscripted, vocab.relations, vocab.arrows
 
 local M = {}
 
@@ -101,13 +101,16 @@ local function rank(node)
   if prefix_operators[op] then return Rank.prefix end
   if op == "*" or op == "/" then return Rank.multiplicative end
   if op == "^" or op == "ssc" or op == "!" then return Rank.script end
-  return Rank.atom -- sqrt draws its own enclosure
+  return Rank.atom -- sqrt draws its own enclosure, and an accent sits on its argument
 end
 
 local atoms = { number = true, variable = true, named = true, raw = true, text = true }
 
---- The decided atoms: these never get brackets anywhere.
-local function is_atom(node) return atoms[node.kind] == true end
+--- The decided atoms, and an accent over one (ẋ): these never get brackets anywhere.
+local function is_atom(node)
+  if node.kind == "apply" and accents[node.operator] then return is_atom(node.args[1]) end
+  return atoms[node.kind] == true
+end
 
 --- An atom with a subscript, like x_i.
 local function is_subscripted_atom(node)
@@ -245,6 +248,9 @@ local function emit_apply(node, followed)
   if infix_latex[operator] then return infix(node) end
 
   if functions[operator] then return "\\" .. operator .. " " .. argument(a) end
+
+  local accent = accents[operator]
+  if accent then return accent .. "{" .. boxed(a, "an accent") .. "}" end
 
   local under = subscripted[operator]
   if under then return under .. "_{" .. boxed(a, "a subscript") .. "} " .. body(b) end

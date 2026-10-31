@@ -97,6 +97,7 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 | `a b / ` · `a sqrt` · `a 2 ^` · `x i _` | a/b as a fraction · √a · a² · xᵢ |
 | `4ac` · `2pi` · `x1` | 4ac · 2π · x₁ (glued letters multiply; glued digits subscript) |
 | `b neg` · `n !` | −b · n! |
+| `x dot` · `x ddot` | ẋ · ẍ (time derivatives) |
 | `alpha` · `Gamma` · `reals` · `infty` | α · Γ · ℝ · ∞ (LaTeX names, no backslash) |
 | `x sin` · `x y + sin` | sin x · sin(x + y) |
 | `0 x < 1 <=` | 0 < x ≤ 1 (also `>`, `>=`, `!=`, `->`, `<<`, `>>`) |
