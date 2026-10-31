@@ -100,9 +100,9 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 | `x dot` · `x ddot` | ẋ · ẍ (time derivatives) |
 | `alpha` · `Gamma` · `reals` · `infty` | α · Γ · ℝ · ∞ (LaTeX names, no backslash) |
 | `x sin` · `x y + sin` | sin x · sin(x + y) |
-| `0 x < 1 <=` | 0 < x ≤ 1 (also `>`, `>=`, `!=`, `->`, `<<`, `>>`) |
+| `0 x < 1 <=` | 0 < x ≤ 1 (also `>`, `>=`, `!=`, `->`, `<-`, `<<`, `>>`) |
 | `x reals in` · `a b approx` | x ∈ ℝ · a ≈ b (relations by name) |
-| `p q and r or s =>` | p ∧ q ∨ r ⇒ s (also `<=>`, `not`) |
+| `p q and r or s =>` | p ∧ q ∨ r ⟹ s (also `<=>`, `not`, and the short ⇒ ⇐ ⇔ as `Rightarrow`, `Leftarrow`, `Leftrightarrow`) |
 | `x exists` · `x forall` | ∃x · ∀x |
 | `x 0 -> x sin x / lim` | lim as x → 0 of sin x / x (also `liminf`, `limsup`) |
 | `x S in f max` · `A sup` | max over x ∈ S of f (also `min`, `argmax`, `argmin`) · sup A (also `inf`) |

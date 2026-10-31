@@ -24,7 +24,7 @@
 
 import { parse, type Equation, type Node } from "./parser.js";
 import type { Diagnostic, Span } from "./lexer.js";
-import { accents, arrows, functions, relations, subscripted } from "./vocabulary.js";
+import { accents, arrows, equivalences, functions, relations, subscripted } from "./vocabulary.js";
 
 /**
  * How the surrounding math lays out equations, which decides what a `br`
@@ -62,8 +62,8 @@ let alignAt: Node | undefined;
  * docs/design.md).
  */
 const Rank = {
-  iff: 1, // <=> iff
-  implies: 2, // => implies impliedby
+  iff: 1, // <=> iff Leftrightarrow
+  implies: 2, // => implies impliedby Rightarrow Leftarrow
   or: 3,
   and: 4,
   relation: 5, // = < <= in …
@@ -95,7 +95,7 @@ function rank(node: Node): number {
       return Rank.multiplicative;
     case "apply": {
       const op = node.operator;
-      if (op === "<=>" || op === "iff") return Rank.iff;
+      if (equivalences.has(op)) return Rank.iff;
       if (arrows.has(op)) return Rank.implies;
       if (op === "or") return Rank.or;
       if (op === "and") return Rank.and;

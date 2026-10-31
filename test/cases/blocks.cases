@@ -274,6 +274,14 @@ latex: a + b \leq c d
 rpn: in
 error: `in` needs 2 values, but none is available
 
+## <- is \leftarrow, the mirror of ->
+rpn: x 0 <-
+latex: x \leftarrow 0
+
+## the single arrows by name bind like relations
+rpn: a b + c rightarrow d leftarrow
+latex: a + b \rightarrow c \leftarrow d
+
 # Logical arrows
 
 ## => is \implies
@@ -307,6 +315,23 @@ latex: (p \implies q) \implies r
 ## an arrow chain is bracketed on the right
 rpn: p q r => =>
 latex: p \implies (q \implies r)
+
+## the short double arrows bind like implies and iff
+rpn: p q and r Rightarrow
+latex: p \wedge q \Rightarrow r
+
+## Leftrightarrow binds looser than Rightarrow and Leftarrow
+rpn: p q Rightarrow r s Leftarrow Leftrightarrow
+latex: p \Rightarrow q \Leftrightarrow r \Leftarrow s
+
+## a chain of short arrows is bracketed too
+rpn: p q Rightarrow r Rightarrow
+latex: (p \Rightarrow q) \Rightarrow r
+
+## an aligned layout lines up at a short arrow
+rpn: a b = c d = Rightarrow
+layout: aligned
+latex: a = b &\Rightarrow c = d
 
 # Logical not
 

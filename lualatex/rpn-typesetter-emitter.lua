@@ -61,8 +61,8 @@ local align_at = nil
 --- when it binds more loosely than its parent (the bracket rule in
 --- docs/design.md).
 local Rank = {
-  iff = 1, -- <=> iff
-  implies = 2, -- => implies impliedby
+  iff = 1, -- <=> iff Leftrightarrow
+  implies = 2, -- => implies impliedby Rightarrow Leftarrow
   ["or"] = 3,
   ["and"] = 4,
   relation = 5, -- = < <= in …
@@ -92,7 +92,7 @@ local function rank(node)
   if kind == "product" or kind == "juxtapose" then return Rank.multiplicative end
   if kind ~= "apply" then return Rank.atom end -- numbers, letters, raw LaTeX, text, matrices, raw operators
   local op = node.operator
-  if op == "<=>" or op == "iff" then return Rank.iff end
+  if vocab.equivalences[op] then return Rank.iff end
   if arrows[op] then return Rank.implies end
   if op == "or" then return Rank["or"] end
   if op == "and" then return Rank["and"] end

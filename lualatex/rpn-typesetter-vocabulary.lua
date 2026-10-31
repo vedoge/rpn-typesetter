@@ -84,18 +84,24 @@ M.accents = { dot = "\\dot", ddot = "\\ddot" }
 --- have an ASCII spelling; every one has a name.
 M.relations = {
   ["="] = "=", ["<"] = "<", [">"] = ">",
-  ["<="] = "\\leq", [">="] = "\\geq", ["!="] = "\\neq", ["<<"] = "\\ll", [">>"] = "\\gg", ["->"] = "\\to",
+  ["<="] = "\\leq", [">="] = "\\geq", ["!="] = "\\neq", ["<<"] = "\\ll", [">>"] = "\\gg", ["->"] = "\\to", ["<-"] = "\\leftarrow",
   leq = "\\leq", geq = "\\geq", neq = "\\neq", ll = "\\ll", gg = "\\gg", to = "\\to",
   approx = "\\approx", equiv = "\\equiv", sim = "\\sim", propto = "\\propto",
   ["in"] = "\\in", notin = "\\notin", subset = "\\subset", subseteq = "\\subseteq", supset = "\\supset",
-  mapsto = "\\mapsto", perp = "\\perp",
+  mapsto = "\\mapsto", perp = "\\perp", rightarrow = "\\rightarrow", leftarrow = "\\leftarrow",
 }
 
---- Logical arrows. They bind more loosely than `and` and `or`; `iff` most loosely of all.
+--- Logical arrows. They bind more loosely than `and` and `or`; `iff` and
+--- `Leftrightarrow` most loosely of all. `Rightarrow` and its kin are the
+--- short glyphs (⇒) of `implies` and its kin (⟹).
 M.arrows = {
   ["=>"] = "\\implies", implies = "\\implies", impliedby = "\\impliedby",
   ["<=>"] = "\\iff", iff = "\\iff",
+  Rightarrow = "\\Rightarrow", Leftarrow = "\\Leftarrow", Leftrightarrow = "\\Leftrightarrow",
 }
+
+--- The arrows that bind most loosely of all.
+M.equivalences = { ["<=>"] = true, iff = true, Leftrightarrow = true }
 
 local function is_name(spelling) return spelling:find("^[A-Za-z]") ~= nil end
 

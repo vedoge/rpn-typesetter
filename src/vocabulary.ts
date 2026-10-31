@@ -87,18 +87,26 @@ export const accents: ReadonlyMap<string, string> = new Map([["dot", "\\dot"], [
  */
 export const relations: ReadonlyMap<string, string> = new Map([
   ["=", "="], ["<", "<"], [">", ">"],
-  ["<=", "\\leq"], [">=", "\\geq"], ["!=", "\\neq"], ["<<", "\\ll"], [">>", "\\gg"], ["->", "\\to"],
+  ["<=", "\\leq"], [">=", "\\geq"], ["!=", "\\neq"], ["<<", "\\ll"], [">>", "\\gg"], ["->", "\\to"], ["<-", "\\leftarrow"],
   ["leq", "\\leq"], ["geq", "\\geq"], ["neq", "\\neq"], ["ll", "\\ll"], ["gg", "\\gg"], ["to", "\\to"],
   ["approx", "\\approx"], ["equiv", "\\equiv"], ["sim", "\\sim"], ["propto", "\\propto"],
   ["in", "\\in"], ["notin", "\\notin"], ["subset", "\\subset"], ["subseteq", "\\subseteq"], ["supset", "\\supset"],
-  ["mapsto", "\\mapsto"], ["perp", "\\perp"],
+  ["mapsto", "\\mapsto"], ["perp", "\\perp"], ["rightarrow", "\\rightarrow"], ["leftarrow", "\\leftarrow"],
 ]);
 
-/** Logical arrows. They bind more loosely than `and` and `or`; `iff` most loosely of all. */
+/**
+ * Logical arrows. They bind more loosely than `and` and `or`; `iff` and
+ * `Leftrightarrow` most loosely of all. `Rightarrow` and its kin are the
+ * short glyphs (⇒) of `implies` and its kin (⟹).
+ */
 export const arrows: ReadonlyMap<string, string> = new Map([
   ["=>", "\\implies"], ["implies", "\\implies"], ["impliedby", "\\impliedby"],
   ["<=>", "\\iff"], ["iff", "\\iff"],
+  ["Rightarrow", "\\Rightarrow"], ["Leftarrow", "\\Leftarrow"], ["Leftrightarrow", "\\Leftrightarrow"],
 ]);
+
+/** The arrows that bind most loosely of all. */
+export const equivalences: ReadonlySet<string> = new Set(["<=>", "iff", "Leftrightarrow"]);
 
 /** Symbols the lexer reads: arithmetic, `_` (subscript), factorial, marks, row separators, and the ASCII relations and arrows. */
 export const symbols: ReadonlySet<string> = new Set([
