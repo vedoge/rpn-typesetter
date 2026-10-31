@@ -436,6 +436,56 @@ rpn: x y + br dot
 layout: multline
 error: `br` can't break a line inside an accent
 
+# Primes
+
+## a glued prime is a derivative
+rpn: f'
+latex: f'
+
+## two primes are a second derivative
+rpn: x''
+latex: x''
+
+## a spring, with primes
+rpn: m x'' * k x * neg =
+latex: m x'' = -k x
+
+## a primed letter is an atom as a function's argument
+rpn: x' sin
+latex: \sin x'
+
+## a power after primes joins their superscript
+rpn: x' 2 ^
+latex: x'^{2}
+
+## primes go on the last letter of a product
+rpn: 2ab'
+latex: 2 a b'
+
+## a reserved value can take primes
+rpn: phi'
+latex: \phi'
+
+## a glued subscript and primes
+rpn: x1'
+latex: x'_{1}
+
+## a primed, subscripted letter with a power is grouped
+rpn: x1' 2 ^
+latex: {x'_{1}}^{2}
+
+## primes must end the token
+rpn: x'1
+error: `x'1`: primes go at the end of a token, after a letter (`x''`, `x1'`)
+
+## a lone prime isn't a token
+rpn: x '
+error: `'`: primes go at the end of a token, after a letter (`x''`, `x1'`)
+
+## an operator can't take a prime
+rpn: x sin'
+error: the operator `sin` can't take a prime
+
 # Sums and integrals
 
 ## a series

@@ -117,6 +117,11 @@ function isAtom(node: Node): boolean {
   return ["number", "variable", "named", "raw", "text"].includes(node.kind);
 }
 
+/** A letter with primes, like x''. */
+function hasPrimes(node: Node): boolean {
+  return (node.kind === "variable" || node.kind === "named") && (node.primes ?? 0) > 0;
+}
+
 /** An atom with a subscript, like x_i. */
 function isSubscriptedAtom(node: Node): boolean {
   return node.kind === "apply" && node.operator === "ssc" && isAtom(node.args[0]!);
@@ -252,8 +257,14 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
       return sideBySide([factor(a!, true), factor(b!, followed)], node.breakBefore && !breaksOff);
     case "/":
       return `\\frac{${boxed(a!, "a fraction")}}{${boxed(b!, "a fraction")}}`;
-    case "^":
-      return `${child(a!, !isAtom(a!) && !isSubscriptedAtom(a!))}^{${boxed(b!, "an exponent")}}`;
+    case "^": {
+      // A prime is already a superscript, so x'_1 with a power is grouped,
+      // {x'_1}^2, or LaTeX reports a double superscript. (x'^2 is fine: LaTeX
+      // merges a power straight after primes into the same superscript.)
+      const primedBase = isSubscriptedAtom(a!) && hasPrimes(a!.kind === "apply" ? a!.args[0]! : a!);
+      const base = primedBase ? `{${emitNode(a!)}}` : child(a!, !isAtom(a!) && !isSubscriptedAtom(a!));
+      return `${base}^{${boxed(b!, "an exponent")}}`;
+    }
     case "ssc": {
       // Subscripts are notational (tensor indices), so the base never gets
       // visible brackets. A base that isn't an atom or a power goes in an
@@ -296,9 +307,9 @@ export function emitNode(node: Node, followed = false): string {
     case "number":
       return node.text;
     case "variable":
-      return node.name;
+      return node.name + "'".repeat(node.primes ?? 0);
     case "named":
-      return node.latex;
+      return node.latex + "'".repeat(node.primes ?? 0);
     case "raw":
       return node.latex;
     case "text":

@@ -31,8 +31,8 @@ import { arrows, relations, vocabulary, type Arity } from "./vocabulary.js";
 export type Node = Span &
   (
     | { readonly kind: "number"; readonly text: string } // 2
-    | { readonly kind: "variable"; readonly name: string } // x
-    | { readonly kind: "named"; readonly name: string; readonly latex: string } // pi → \pi
+    | { readonly kind: "variable"; readonly name: string; readonly primes?: number } // x, x''
+    | { readonly kind: "named"; readonly name: string; readonly latex: string; readonly primes?: number } // pi → \pi
     | { readonly kind: "raw"; readonly latex: string } // \mathcal{F}
     | { readonly kind: "text"; readonly text: string } // "if "
     | { readonly kind: "product"; readonly factors: readonly Node[] } // glued: 4ac
@@ -263,15 +263,19 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
   return { equations, errors: [], warnings };
 }
 
-/** A single factor as a node. A glued subscript becomes `ssc`: `x1` → x 1 ssc. */
+/**
+ * A single factor as a node. Primes stay on the letter; a glued subscript
+ * becomes `ssc`: `x1'` → x' 1 ssc.
+ */
 function factorNode(factor: Factor, span: Span): Node {
   const at = { start: span.start, end: span.end };
   let base: Node;
   if (factor.kind === "number") return { kind: "number", text: factor.text, ...at };
-  if (factor.kind === "variable") base = { kind: "variable", name: factor.name, ...at };
+  const primes = factor.primes === undefined ? {} : { primes: factor.primes };
+  if (factor.kind === "variable") base = { kind: "variable", name: factor.name, ...primes, ...at };
   else {
     const word = vocabulary.get(factor.name);
-    base = { kind: "named", name: factor.name, latex: word?.role === "value" ? word.latex : factor.name, ...at };
+    base = { kind: "named", name: factor.name, latex: word?.role === "value" ? word.latex : factor.name, ...primes, ...at };
   }
   if (factor.subscript === undefined) return base;
   return { kind: "apply", operator: "ssc", args: [base, { kind: "number", text: factor.subscript, ...at }], ...at };

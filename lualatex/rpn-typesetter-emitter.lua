@@ -112,6 +112,11 @@ local function is_atom(node)
   return atoms[node.kind] == true
 end
 
+--- A letter with primes, like x''.
+local function has_primes(node)
+  return (node.kind == "variable" or node.kind == "named") and (node.primes or 0) > 0
+end
+
 --- An atom with a subscript, like x_i.
 local function is_subscripted_atom(node)
   return node.kind == "apply" and node.operator == "ssc" and is_atom(node.args[1])
@@ -260,7 +265,16 @@ local function emit_apply(node, followed)
   elseif operator == "/" then
     return "\\frac{" .. boxed(a, "a fraction") .. "}{" .. boxed(b, "a fraction") .. "}"
   elseif operator == "^" then
-    return child(a, not is_atom(a) and not is_subscripted_atom(a)) .. "^{" .. boxed(b, "an exponent") .. "}"
+    -- A prime is already a superscript, so x'_1 with a power is grouped,
+    -- {x'_1}^2, or LaTeX reports a double superscript. (x'^2 is fine: LaTeX
+    -- merges a power straight after primes into the same superscript.)
+    local base
+    if is_subscripted_atom(a) and has_primes(a.args[1]) then
+      base = "{" .. emit_node(a) .. "}"
+    else
+      base = child(a, not is_atom(a) and not is_subscripted_atom(a))
+    end
+    return base .. "^{" .. boxed(b, "an exponent") .. "}"
   elseif operator == "ssc" then
     -- Subscripts are notational (tensor indices), so the base never gets
     -- visible brackets. A base that isn't an atom or a power goes in an
@@ -299,8 +313,9 @@ local variadic_environment = { mat = "pmatrix", col = "pmatrix", cases = "cases"
 emit_node = function(node, followed)
   local kind = node.kind
   if kind == "number" then return node.text end
-  if kind == "variable" then return node.name end
-  if kind == "named" or kind == "raw" then return node.latex end
+  if kind == "variable" then return node.name .. ("'"):rep(node.primes or 0) end
+  if kind == "named" then return node.latex .. ("'"):rep(node.primes or 0) end
+  if kind == "raw" then return node.latex end
   if kind == "text" then return "\\text{" .. node.text .. "}" end
   if kind == "product" or kind == "juxtapose" then
     local items = kind == "product" and node.factors or node.items
