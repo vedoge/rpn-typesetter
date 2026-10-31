@@ -20,13 +20,19 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # Lua runs the LuaLaTeX package's pipeline against the shared cases.
+      - name: Install Lua
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends lua5.3
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
 
   latex:
-    name: Compile with pdfLaTeX
+    name: Compile with pdfLaTeX and LuaLaTeX
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -42,10 +48,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-base texlive-latex-recommended texlive-latex-extra \
-            texlive-fonts-recommended latexmk
+            texlive-fonts-recommended texlive-luatex latexmk
       - run: npm ci
       # With pdflatex installed, test/latex.test.ts compiles every expected
-      # output in test/cases/; REQUIRE_LATEX makes it fail rather than skip.
+      # output in test/cases/, and with lualatex, test/lualatex.test.ts
+      # typesets every document case through the LuaLaTeX package;
+      # REQUIRE_LATEX makes them fail rather than skip.
       - run: npm test
         env:
           REQUIRE_LATEX: "1"
@@ -56,7 +64,21 @@ jobs:
           cd examples
           latexmk -interaction=nonstopmode -halt-on-error demo.rtex
           head -1 demo.tex
-      - name: Upload the PDF
+      - name: Typeset the LuaLaTeX example with the package
+        working-directory: examples/lualatex
+        env:
+          # As if lualatex/ were installed in the TeX tree.
+          TEXINPUTS: "${{ github.workspace }}/lualatex//:"
+          LUAINPUTS: "${{ github.workspace }}/lualatex//:"
+        run: latexmk -lualatex -interaction=nonstopmode -halt-on-error demo.tex
+      - name: Build the CTAN upload, documentation and all
+        run: npm run ctan
+      - name: Upload the CTAN zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctan
+          path: rpn-typesetter-ctan.zip
+      - name: Upload the PDFs
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -65,4 +87,6 @@ jobs:
             examples/demo.tex
             examples/demo.pdf
             examples/demo.log
+            examples/lualatex/demo.pdf
+            examples/lualatex/demo.log
           if-no-files-found: ignore

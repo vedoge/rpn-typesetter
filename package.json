@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "LaTeX preprocessor: RPN math in, plain LaTeX out",
+  "license": "LPPL-1.3c",
   "type": "module",
   "repository": {
     "type": "git",
@@ -23,7 +24,8 @@
     "typecheck": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "ctan": "sh scripts/ctan.sh"
   },
   "devDependencies": {
     "@types/node": "22.20.5",

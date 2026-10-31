@@ -113,6 +113,10 @@ output: $ \text{50\% off} $
 document: \begin{verbatim}$@ a +$\end{verbatim} \verb|$@ a +| \verb*+$+
 output: \begin{verbatim}$@ a +$\end{verbatim} \verb|$@ a +| \verb*+$+
 
+## only the recognised environments are math
+document: \newenvironment{constructor}{}{}\begin{constructor}@ a b +\end{constructor}
+output: \newenvironment{constructor}{}{}\begin{constructor}@ a b +\end{constructor}
+
 # Errors and warnings
 
 ## an error is reported at its line and column
@@ -125,6 +129,12 @@ error: 2:11: `+` needs 2 values, but only 1 is available
 document: $@ a +$ $@ b c +$ $@ sqrt$
 error: 1:6: `+` needs 2 values, but only 1 is available
 error: 1:22: `sqrt` needs 1 value, but none is available
+
+## errors that mention LaTeX's special characters
+document: $@ a \overset/2$ $@ {b}$ $@ #$
+error: 1:6: `\overset` needs 2 values, but only 1 is available
+error: 1:21: unknown symbol `{b}`
+error: 1:29: unknown symbol `#`
 
 ## a warning is reported at its line and column
 document: $@ 2 x 2 ^$

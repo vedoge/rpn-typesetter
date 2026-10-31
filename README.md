@@ -44,9 +44,40 @@ Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`. Don't 
 paper.rtex:12:8: error: `+` needs 2 values, but only 1 is available
 ```
 
-If any RPN is invalid, nothing is written and LaTeX doesn't run. You can also run `rpn-typesetter paper.rtex` on its own.
+Invalid RPN is also a LaTeX error where LaTeX reaches it. As with any LaTeX error, LaTeX stops and waits; press Return to carry on, and the block is typeset as **??**, like a missing reference. You can also run `rpn-typesetter paper.rtex` on its own; it exits 1 if any RPN is invalid (it still writes `paper.tex`).
 
 [`examples/demo.rtex`](examples/demo.rtex) is a small document to start from.
+
+## With LuaLaTeX instead
+
+There's also a LuaLaTeX package, which converts the RPN inside the LaTeX run, so there's no command to install and no `.tex` file to generate. It's newer and experimental: it converts exactly what the command converts, but how it's set up may still change (see [`docs/design.md`](docs/design.md)).
+
+It's headed for CTAN, after which TeX Live and MiKTeX will install it like any other package. Until then, copy the `.sty` and `.lua` files in [`lualatex/`](lualatex) into a folder TeX searches, such as `~/texmf/tex/lualatex/rpn-typesetter/` (`kpsewhich -var-value TEXMFHOME` prints where `~/texmf` is on your system). On Overleaf, upload them next to your document instead.
+
+Then load it in an ordinary `.tex` document, and build with LuaLaTeX:
+
+```latex
+\documentclass{article}
+\usepackage{rpn-typesetter}
+\begin{document}
+The roots are \[@ x b neg b 2 ^ 4ac - sqrt + 2a / = \]
+\end{document}
+```
+
+```sh
+latexmk -lualatex paper.tex
+```
+
+RPN works anywhere after the `\usepackage` line, in your document and in the `.tex` files it `\input`s or `\include`s. Invalid RPN is reported with the same message as the command, as a LaTeX error where TeX reaches it:
+
+```
+paper.tex:12:8: error: `+` needs 2 values, but only 1 is available
+! Package rpn-typesetter Error: `+` needs 2 values, but only 1 is available.
+```
+
+As with any LaTeX error, TeX stops and waits; press Return to carry on, and the block is typeset as **??**, like a missing reference. Line numbers in LaTeX's own messages still match your file.
+
+The package loads `amsmath` and `unicode-math` unless your document already does; `\usepackage[unicode-math=false]{rpn-typesetter}` loads `amssymb` instead, keeping LaTeX's traditional math fonts. Under pdfLaTeX the package does nothing, so a document that loads it can still go through the `rpn-typesetter` command. [`examples/lualatex/demo.tex`](examples/lualatex/demo.tex) is the demo set up this way, and `lualatex/rpn-typesetter-doc.tex` is the package's documentation.
 
 ## Marking RPN math
 
@@ -96,6 +127,10 @@ npm run typecheck
 npm link            # use your working copy as the rpn-typesetter command
 ```
 
-With `pdflatex` installed, `npm test` also compiles every expected output in the shared cases with real LaTeX. CI runs everything on every push and typesets `examples/demo.rtex`.
+With `pdflatex` installed, `npm test` also compiles every expected output in the shared cases with real LaTeX. With `texlua` (part of LuaTeX) or Lua 5.3+, it runs the shared cases against the LuaLaTeX package's Lua code (`texlua test/lualatex/conformance.lua` does just that), and with `lualatex` it typesets every document case through the package. CI runs everything on every push and typesets both demos.
 
-To release, bump `version` in `package.json`, commit to `main`, and either push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`) or run the Release workflow by hand on `main` from the Actions tab, which tags the commit itself. The release workflow tests, packs, and publishes `rpn-typesetter.tgz` to GitHub Releases, which is what the install command fetches. (Installing straight from git with `npm install -g github:…` doesn't work: npm skips the build step's dependencies for global git installs.)
+To release, bump `version` in `package.json` and in `lualatex/rpn-typesetter.sty` (a test checks they match), commit to `main`, and either push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`) or run the Release workflow by hand on `main` from the Actions tab, which tags the commit itself. The release workflow tests, packs, and publishes `rpn-typesetter.tgz` to GitHub Releases, which is what the install command fetches. It also attaches `rpn-typesetter-ctan.zip` (built locally with `npm run ctan`), the LuaLaTeX package as CTAN takes it, to upload at [ctan.org/upload](https://ctan.org/upload). (Installing straight from git with `npm install -g github:…` doesn't work: npm skips the build step's dependencies for global git installs.)
+
+## License
+
+Copyright 2026 vedoge. rpn-typesetter, the command and the LuaLaTeX package, may be distributed and/or modified under the conditions of the [LaTeX Project Public License](LICENSE), version 1.3c or (at your option) any later version. It has the LPPL maintenance status `maintained`, and the Current Maintainer is vedoge.

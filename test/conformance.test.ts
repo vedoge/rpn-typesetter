@@ -1,5 +1,6 @@
 // Runs the shared test cases (test/cases/*.cases) against the TypeScript
-// implementation. The LuaLaTeX package will run the same files.
+// implementation. The LuaLaTeX package runs the same files through
+// test/lualatex/conformance.lua.
 
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
