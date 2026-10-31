@@ -1,3 +1,16 @@
+-- Copyright 2026 vedoge
+--
+-- This work may be distributed and/or modified under the conditions of the
+-- LaTeX Project Public License, either version 1.3c of this license or (at
+-- your option) any later version. The latest version of this license is in
+-- https://www.latex-project.org/lppl.txt and version 1.3c or later is part
+-- of all distributions of LaTeX version 2008 or later.
+--
+-- This work has the LPPL maintenance status `maintained'.
+-- The Current Maintainer of this work is vedoge (https://github.com/vedoge).
+--
+-- This work consists of all the files in https://github.com/vedoge/rpn-typesetter.
+--
 -- Small text helpers shared by the Lua modules. Lua strings are bytes, and
 -- the TypeScript tool works on JavaScript strings, so these keep the two in
 -- step where that matters: what counts as whitespace, and how columns are
@@ -81,24 +94,6 @@ function M.width(s, from, to)
     i = i + length
   end
   return n
-end
-
---- A number as JavaScript prints it: 2, 100000000000000000000,
---- 9223372036854776000, 1e+21, Infinity.
-function M.js_number(x)
-  x = x + 0.0
-  if x == math.huge then return "Infinity" end
-  local digits
-  for precision = 1, 17 do
-    digits = ("%." .. precision .. "g"):format(x)
-    if tonumber(digits) == x then break end
-  end
-  local mantissa, exponent = digits:match("^([%d.]+)e([+-]%d+)$")
-  if not mantissa then return digits end
-  exponent = tonumber(exponent)
-  if exponent >= 21 then return (mantissa .. "e+" .. exponent) end
-  local whole, fraction = mantissa:match("^(%d+)%.?(%d*)$")
-  return whole .. fraction .. ("0"):rep(exponent - #fraction)
 end
 
 --- The 1-based line and column of position `at`, for error messages.

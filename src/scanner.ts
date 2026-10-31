@@ -1,3 +1,16 @@
+// Copyright 2026 vedoge
+//
+// This work may be distributed and/or modified under the conditions of the
+// LaTeX Project Public License, either version 1.3c of this license or (at
+// your option) any later version. The latest version of this license is in
+// https://www.latex-project.org/lppl.txt and version 1.3c or later is part
+// of all distributions of LaTeX version 2008 or later.
+//
+// This work has the LPPL maintenance status `maintained'.
+// The Current Maintainer of this work is vedoge (https://github.com/vedoge).
+//
+// This work consists of all the files in https://github.com/vedoge/rpn-typesetter.
+//
 // The scanner: the stage that works on a whole `.rtex` document. It's a
 // second, simpler lexer. It doesn't understand LaTeX; it only knows enough to
 // find math regions, and to skip the places where `$` or `\[` don't mean math
@@ -48,8 +61,16 @@ interface Region {
   readonly name: string;
 }
 
+export interface ConvertOptions {
+  /**
+   * Given the errors of one invalid block, returns LaTeX to put in its place.
+   * Without it, an invalid block is left as it is.
+   */
+  readonly invalid?: (errors: readonly Diagnostic[]) => string;
+}
+
 /** Converts a whole `.rtex` document to LaTeX. */
-export function convert(document: string): ConvertResult {
+export function convert(document: string, options: ConvertOptions = {}): ConvertResult {
   const errors: Diagnostic[] = [];
   const warnings: Diagnostic[] = [];
   const pieces: string[] = [];
@@ -66,31 +87,35 @@ export function convert(document: string): ConvertResult {
     const rpn = blankComments(document.slice(rpnStart, region.contentEnd));
     const shift = (d: Diagnostic): Diagnostic => ({ ...d, start: d.start + rpnStart, end: d.end + rpnStart });
 
+    const blockErrors: Diagnostic[] = [];
     const result = parse(rpn);
-    errors.push(...result.errors.map(shift));
+    blockErrors.push(...result.errors.map(shift));
     warnings.push(...result.warnings.map(shift));
-    if (result.errors.length > 0) continue;
 
+    let latex: string | undefined;
     const second = result.equations[1];
-    if (second && (region.layout === "single" || region.layout === "multline")) {
-      errors.push(
+    if (result.errors.length > 0) {
+      // reported above
+    } else if (second && (region.layout === "single" || region.layout === "multline")) {
+      blockErrors.push(
         shift({
           start: second.start,
           end: second.end,
           message: `${region.name} holds one equation; use an environment like align or gather for several`,
         }),
       );
-      continue;
+    } else {
+      try {
+        latex = result.equations.map((eq) => emitEquation(eq, region.layout)).join(" \\\\ ");
+      } catch (error) {
+        if (!(error instanceof EmitError)) throw error;
+        blockErrors.push(shift(error.diagnostic));
+      }
     }
 
-    let latex: string;
-    try {
-      latex = result.equations.map((eq) => emitEquation(eq, region.layout)).join(" \\\\ ");
-    } catch (error) {
-      if (!(error instanceof EmitError)) throw error;
-      errors.push(shift(error.diagnostic));
-      continue;
-    }
+    errors.push(...blockErrors);
+    if (blockErrors.length > 0 && options.invalid) latex = options.invalid(blockErrors);
+    if (latex === undefined) continue;
     pieces.push(document.slice(copiedTo, first), ` ${latex} `);
     copiedTo = region.contentEnd;
   }

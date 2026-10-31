@@ -1,3 +1,16 @@
+% Copyright 2026 vedoge
+%
+% This work may be distributed and/or modified under the conditions of the
+% LaTeX Project Public License, either version 1.3c of this license or (at
+% your option) any later version. The latest version of this license is in
+% https://www.latex-project.org/lppl.txt and version 1.3c or later is part
+% of all distributions of LaTeX version 2008 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% The Current Maintainer of this work is vedoge (https://github.com/vedoge).
+%
+% This work consists of all the files in https://github.com/vedoge/rpn-typesetter.
+%
 % The rpn-typesetter package's documentation. It's typeset with the package
 % itself: each example shows the RPN as written, then what it becomes.
 %   lualatex rpn-typesetter-doc.tex
@@ -57,8 +70,8 @@ them always win. With \verb|\usepackage[unicode-math=false]{rpn-typesetter}|
 it loads \verb|amssymb| instead, keeping LaTeX's traditional math fonts.
 
 Under pdfLaTeX the package does nothing. There, the separate
-\verb|rpn-typesetter| command converts the document before pdfLaTeX runs; see
-the project page.
+\verb|rpn-typesetter| command converts the document before pdfLaTeX runs,
+reporting invalid RPN the same way; see the project page.
 
 \subsection{Mistakes}
 
@@ -130,5 +143,12 @@ gives
 
 The full rules, and the reasons for them, are in the design log on the
 project page.
+
+\section{License}
+
+Copyright 2026 vedoge. This work may be distributed and/or modified under
+the conditions of the LaTeX Project Public License, either version 1.3c of
+this license or (at your option) any later version. It has the LPPL
+maintenance status `maintained'; the Current Maintainer is vedoge.
 
 \end{document}

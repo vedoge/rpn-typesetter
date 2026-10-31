@@ -1,3 +1,16 @@
+-- Copyright 2026 vedoge
+--
+-- This work may be distributed and/or modified under the conditions of the
+-- LaTeX Project Public License, either version 1.3c of this license or (at
+-- your option) any later version. The latest version of this license is in
+-- https://www.latex-project.org/lppl.txt and version 1.3c or later is part
+-- of all distributions of LaTeX version 2008 or later.
+--
+-- This work has the LPPL maintenance status `maintained'.
+-- The Current Maintainer of this work is vedoge (https://github.com/vedoge).
+--
+-- This work consists of all the files in https://github.com/vedoge/rpn-typesetter.
+--
 -- The lexer: the first stage of the pipeline. It turns the text of one RPN
 -- block into a list of tokens, the "words" the parser works with. It knows
 -- nothing about the stack; it only decides what each piece of text is.
@@ -96,8 +109,8 @@ local function classify(chunk, span)
     end
     local command, arity = chunk:match("^(\\[A-Za-z]+)/(%d+)$")
     if command then
-      -- As a float, like a JavaScript number, so a huge arity behaves the same.
-      return token("rawOperator", span, { command = command, arity = tonumber(arity) + 0.0 })
+      if tonumber(arity) > 9 then return fail(("`%s`: a LaTeX command takes at most 9 arguments"):format(chunk)) end
+      return token("rawOperator", span, { command = command, arity = tonumber(arity) })
     end
     return token("raw", span, { latex = chunk })
   end

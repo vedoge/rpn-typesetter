@@ -1,3 +1,16 @@
+-- Copyright 2026 vedoge
+--
+-- This work may be distributed and/or modified under the conditions of the
+-- LaTeX Project Public License, either version 1.3c of this license or (at
+-- your option) any later version. The latest version of this license is in
+-- https://www.latex-project.org/lppl.txt and version 1.3c or later is part
+-- of all distributions of LaTeX version 2008 or later.
+--
+-- This work has the LPPL maintenance status `maintained'.
+-- The Current Maintainer of this work is vedoge (https://github.com/vedoge).
+--
+-- This work consists of all the files in https://github.com/vedoge/rpn-typesetter.
+--
 -- The parser: the second stage of the pipeline. It runs the stack over the
 -- lexer's tokens and builds a tree of the expression, called an abstract
 -- syntax tree (AST). Each operator becomes a node whose children are the
@@ -95,7 +108,7 @@ function M.parse_tokens(tokens, end_of_block)
       if top == nil or top.kind ~= "value" then
         local where = top == nil and "" or top.kind == "mark" and " after the last `[`" or " in this row"
         local have = k == 0 and "none is" or k == 1 and "only 1 is" or ("only %d are"):format(k)
-        fail(at, ("`%s` needs %s value%s, but %s available%s"):format(name, text.js_number(count), count == 1 and "" or "s", have, where))
+        fail(at, ("`%s` needs %d value%s, but %s available%s"):format(name, count, count == 1 and "" or "s", have, where))
       end
       table.insert(args, 1, top.node)
     end

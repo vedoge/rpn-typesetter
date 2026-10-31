@@ -692,9 +692,13 @@ error: `sqrt` needs 1 value, but none is available
 rpn: a \overset/2
 error: `\overset` needs 2 values, but only 1 is available
 
-## a raw operator's arity is a number like any other, however large
-rpn: a \foo/99999999999999999999
-error: `\foo` needs 100000000000000000000 values, but only 1 is available
+## a raw operator takes at most 9 values, as a LaTeX command does
+rpn: a b \foo/10
+error: `\foo/10`: a LaTeX command takes at most 9 arguments
+
+## a raw operator's arity can be written with leading zeros
+rpn: a b \overset/02
+latex: \overset{a}{b}
 
 ## a variadic operator with no mark
 rpn: a b mat

@@ -44,7 +44,7 @@ Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`. Don't 
 paper.rtex:12:8: error: `+` needs 2 values, but only 1 is available
 ```
 
-If any RPN is invalid, nothing is written and LaTeX doesn't run. You can also run `rpn-typesetter paper.rtex` on its own.
+Invalid RPN is also a LaTeX error where LaTeX reaches it. As with any LaTeX error, LaTeX stops and waits; press Return to carry on, and the block is typeset as **??**, like a missing reference. You can also run `rpn-typesetter paper.rtex` on its own; it exits 1 if any RPN is invalid (it still writes `paper.tex`).
 
 [`examples/demo.rtex`](examples/demo.rtex) is a small document to start from.
 
@@ -130,3 +130,7 @@ npm link            # use your working copy as the rpn-typesetter command
 With `pdflatex` installed, `npm test` also compiles every expected output in the shared cases with real LaTeX. With `texlua` (part of LuaTeX) or Lua 5.3+, it runs the shared cases against the LuaLaTeX package's Lua code (`texlua test/lualatex/conformance.lua` does just that), and with `lualatex` it typesets every document case through the package. CI runs everything on every push and typesets both demos.
 
 To release, bump `version` in `package.json` and in `lualatex/rpn-typesetter.sty` (a test checks they match), commit to `main`, and either push a matching tag (`git tag v0.2.0 && git push origin v0.2.0`) or run the Release workflow by hand on `main` from the Actions tab, which tags the commit itself. The release workflow tests, packs, and publishes `rpn-typesetter.tgz` to GitHub Releases, which is what the install command fetches. It also attaches `rpn-typesetter-ctan.zip` (built locally with `npm run ctan`), the LuaLaTeX package as CTAN takes it, to upload at [ctan.org/upload](https://ctan.org/upload). (Installing straight from git with `npm install -g github:…` doesn't work: npm skips the build step's dependencies for global git installs.)
+
+## License
+
+Copyright 2026 vedoge. rpn-typesetter, the command and the LuaLaTeX package, may be distributed and/or modified under the conditions of the [LaTeX Project Public License](LICENSE), version 1.3c or (at your option) any later version. It has the LPPL maintenance status `maintained`, and the Current Maintainer is vedoge.

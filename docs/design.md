@@ -28,7 +28,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Brackets across a break:** `\left( … \right. \\ \left. … \right)`, with `\vphantom{…}` of the whole bracketed contents on both lines, so both halves come out the same height. (Fixed sizes like `\bigl( … \bigr)` were rejected.)
 - **Marker position:** the marker is the first non-space character after the opening math delimiter, so `$@ a b +$` and `$ @ a b +$` are both RPN. Spaces never decide whether a block is RPN.
 - **Labels go inside the RPN:** `\label{…}` and `\notag`/`\nonumber` are set aside rather than pushed, and attach to the equation they appear in, so each `;`-separated equation can carry its own: `\begin{align}@ \label{eq:one} a b = ; c d = \notag \end{align}`.
-- **Invalid RPN stops the build.** If any RPN block is invalid (stack underflow, a variadic operator with no mark, …), the tool reports it and exits with an error, so LaTeX never runs. Once the RPN is valid, any LaTeX error in the output is LaTeX's to report. The tool has no source map.
+- **Invalid RPN is a LaTeX error where LaTeX reaches it, in both implementations.** The command reports each invalid block (stack underflow, a variadic operator with no mark, …) and writes it into `paper.tex` as a LaTeX error followed by a bold **??**; the LuaLaTeX package does the same during the run. LaTeX stops and waits, as for any error, and when told to carry on it typesets **??**, like a missing reference. (This replaces "invalid RPN stops the build".) Any other LaTeX error in the output is LaTeX's to report. The tool has no source map.
 - **Plain math that starts with the marker character:** put an empty group first. With `@` as the marker, `${}@$` is plain LaTeX math that typesets @. TeX ignores `{}`, so it doesn't change the output. Only the start of a block matters: `$x@y$` needs nothing.
 - **Postfix input:** math is written in RPN, so the author never types grouping parentheses. The typesetter adds any visual parentheses the output needs, based on operator precedence.
 - **Operator spelling:** arithmetic uses standard math symbols (`+ - * / ^ =`), even where they need Shift. Named operations are short words. That covers functions (`sqrt`, `exp`), notation like `ssc` (subscript) and `vec`, and `sum`. Avoid `\`; it's too far from the home row.
@@ -44,7 +44,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Separate equations in `align`-like environments** each get `&` before their relation: `a &= b \\ c &= d`. `gather` gets no `&`.
 - **Recognised math environments:** `equation`, `displaymath`, `math`, `multline`, `gather`, `gathered`, `eqnarray`, `align`, `flalign`, `alignat`, `aligned`, `alignedat`, `split`, and starred forms. Several equations in a one-equation region (`$…$`, `\[…\]`, `equation`, `multline`) are an error that points to `align` or `gather`.
 - **`%` comments inside an RPN block are ignored,** as LaTeX would. `\%` is never a comment: in RPN it's a raw token (a literal %), and inside quoted text it stays `\%`.
-- **Errors:** every bad block is reported (one error per block) as `paper.rtex:12:8: error: …`, then the tool exits 1 without writing `paper.tex`.
+- **Errors:** every bad block is reported (one error per block) as `paper.rtex:12:8: error: …`.
 - **A function or sum used as a factor is bracketed only when something follows it:** `x sin y *` → (sin x)y, but `y x sin *` → y sin x.
 - **Function arguments are bracketed unless they're atoms:** `x sin` → sin x, `x y + sin` → sin(x + y).
 - **Relations: ASCII where a common spelling exists, names for all:** `<` `>` `<=` `>=` `!=` `<<` `>>` `->`, and the names `leq` `geq` `neq` `ll` `gg` `to` `approx` `equiv` `sim` `propto` `in` `notin` `subset` `subseteq` `supset` `mapsto` `perp`. `<=` is ≤ (`\leq`), not ⇐. All are binary and rank with `=`, so chains work: `0 x < 1 <=` → 0 < x ≤ 1.
@@ -73,7 +73,7 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Starting vocabulary:** the whole Greek alphabet; `reals` → ℝ, `complex` → ℂ, `naturals` → ℕ, `integers` → ℤ, `rationals` → ℚ; `and` → ∧ and `or` → ∨ (binary operators); `exists` and `forall`.
 - **Quantifiers are operators:** `exists` and `forall` take one argument, the thing they quantify. `x exists` → ∃x, `x forall` → ∀x.
 - **Escape hatch: raw value.** A token starting with `\` is copied into the output as-is and pushed as one value: `\mathcal{F} x ssc` → 𝓕ₓ. The tool can't see inside it, so it's an **atom** and never gets brackets. If the raw text needs brackets (`\alpha+\beta`), the author writes them.
-- **Escape hatch: raw operator.** `\cmd/N` pops N values and emits `\cmd{…}{…}`: `a b \overset/2` → `\overset{a}{b}`.
+- **Escape hatch: raw operator.** `\cmd/N` pops N values and emits `\cmd{…}{…}`: `a b \overset/2` → `\overset{a}{b}`. N is at most 9, as for a LaTeX command; `\foo/10` is an error.
 - **Upright text:** a quoted string becomes `\text{…}`: `"if "` → `\text{if }`. Inside quotes, the lexer keeps spaces instead of ending the token. A backslash escapes a quote: `"say \"hi\""`.
 - **Spaces always end a raw LaTeX token,** even inside braces, so `\operatorname{arg max}` splits in two.
 - **Letters are ASCII only:** `α` typed directly is an error; write `alpha`.
@@ -88,10 +88,11 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 - **Layout groups some arguments:** an argument the layout puts in its own box never gets brackets. Fraction numerator and denominator, the `sqrt` radicand, the exponent of `^`, the subscript of `ssc`, and the bounds of `ser`/`int` are all in this group. Arguments that stay on the line next to something (the base of `^`/`ssc`, operands of `+ - *`) follow the bracket rule.
 - **The LuaLaTeX package is turned on with `\usepackage{rpn-typesetter}`** in the document, which is an ordinary `.tex` file (not `.rtex`), built with `lualatex` (`latexmk -lualatex paper.tex`). It uses the same `@` blocks as the command. RPN before the `\usepackage` line isn't converted, because TeX has already read it.
 - **The LuaLaTeX package converts the author's files:** the document and the `.tex` files it `\input`s or `\include`s.
-- **Invalid RPN under LuaLaTeX is a LaTeX error where TeX reaches it:** TeX stops and waits, as for any LaTeX error, and when told to carry on it typesets the block as **??**, like a missing reference. (The command still stops before LaTeX runs.)
+- **Invalid RPN under LuaLaTeX is a LaTeX error where TeX reaches it:** TeX stops and waits, as for any LaTeX error, and when told to carry on it typesets the block as **??**, like a missing reference.
 - **The LuaLaTeX package loads `unicode-math` by default,** with `amsmath` before it.
 - **Under pdfLaTeX the package does nothing,** so a document that loads it can still go through the command.
 - **The LuaLaTeX package is shipped through CTAN,** so TeX Live and MiKTeX can install it.
+- **License: LPPL 1.3c** (or any later version) for the whole repository, `Copyright 2026 vedoge`, with LPPL maintenance status `maintained` and vedoge as Current Maintainer. Each source file carries the notice; `LICENSE` is the license text.
 
 ## Proposed (not yet accepted)
 
@@ -128,6 +129,8 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 | LuaLaTeX: how an error reads | When TeX reaches the block, each of its errors is printed as `paper.tex:12:8: error: …`, then `! Package rpn-typesetter Error:` with the first message. The placeholder is a bold ?? (`\mbox{\normalfont\bfseries ??}`). Each block raises its error once, though `align` reads its contents twice and a macro may be used many times | The package does this now. Warnings (leftover values) are printed when the file is converted. TeX's own context line shows `\RPNTypesetterInvalid{n}`, the command the block became, rather than the RPN. |
 | LuaLaTeX: turning unicode-math off | `\usepackage[unicode-math=false]{rpn-typesetter}` loads `amssymb` instead, as the command does. Packages load at the end of the preamble, each only if nothing has loaded it yet | The package does this now. Loading late means the author's own options always win, with no option clash. |
 | LuaLaTeX: columns | Columns count characters the way the command does (UTF-16 units, so 𝑥 and emoji count as 2) | The package does this now, so the two give the same error messages. |
+| The command's exit code | With invalid RPN the command still writes `paper.tex`, and exits 1 so a script notices; under `--latexmk` it exits 0, so latexmk's `rpn-typesetter --latexmk %S && pdflatex …` goes on to LaTeX, which raises the errors | The command does this now. Authors' existing `.latexmkrc` lines keep working unchanged. |
+| How the command writes an error | `\typeout` of each `paper.rtex:12:8: error: …` line, then `\PackageError{rpn-typesetter}{…}`, guarded by a `\csname` flag so it's raised once though `align` reads its contents twice, then `\mbox{\normalfont\bfseries ??}`. Messages are escaped so `\`, `{`, `#` and `%` print as themselves | The command does this now, so LaTeX's log reads the same as under the LuaLaTeX package. It needs no package and works without `\documentclass`. |
 | What goes to CTAN | `npm run ctan` builds `rpn-typesetter-ctan.zip`: the package, a CTAN README (`lualatex/README.md`) and documentation typeset with the package itself (`lualatex/rpn-typesetter-doc.tex`). Each GitHub release carries it, to upload by hand at ctan.org/upload. Its version is the command's | CI builds it on every push. Uploading could be automated later. |
 
 ## Wanted, spelling not yet chosen
@@ -147,6 +150,3 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 6. **Markdown.** Is Markdown support dropped, or kept as a second front end that shares the same core?
 7. **Included files in the command.** The LuaLaTeX package converts the files a document `\input`s. Should the command follow `\input`/`\include` into the author's other `.rtex` files too, or convert every `.rtex` in the project? (It never reads packages.)
 8. **Measured breaks in each implementation.** TypeScript measures on one run and breaks on the next (`.aux`); the Lua package can measure in the same run. Must both choose the same breaks, or only the same LaTeX for everything else?
-9. **The command's errors.** Under LuaLaTeX an invalid block becomes an error plus **??**, and the run carries on when told. Should the command do the same (write **??** and a LaTeX error into `paper.tex`, and let LaTeX run), or keep stopping before LaTeX runs?
-10. **License.** CTAN needs one before it accepts the package, and the repository has none yet. LaTeX packages usually use the LPPL; MIT is also common.
-11. **Raw operator arities.** `\cmd/N` takes any N, so `\foo/99999999999999999999` is accepted and fails only for lack of values. A LaTeX command takes at most 9 arguments; should a larger N be an error in the lexer?
