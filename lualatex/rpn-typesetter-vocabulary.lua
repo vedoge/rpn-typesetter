@@ -129,7 +129,7 @@ local operators = {
   ser = 3,
   int = 4,
   br = "break",
-  mat = "variadic", cases = "variadic", col = "variadic",
+  mat = "variadic", cases = "variadic", col = "variadic", tuple = "variadic",
   vec = "undecided",
 }
 for _, table in ipairs { M.relations, M.arrows } do

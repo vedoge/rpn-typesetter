@@ -244,6 +244,30 @@ latex: \forall \epsilon > 0, \exists \delta > 0, x - a < \delta \implies y - b <
 rpn: x 1 = 2 , 3 ,
 latex: x = 1, 2, 3
 
+## a list beside a relation is written bare
+rpn: a tilde b tilde , complex in
+latex: \tilde{a}, \tilde{b} \in \mathbb{C}
+
+## a list on the right of a relation is written bare
+rpn: x 1 2 , 3 , =
+latex: x = 1, 2, 3
+
+## lists on both sides of a relation
+rpn: a b , c d , =
+latex: a, b = c, d
+
+## a quantifier over a list with a condition
+rpn: a b , complex in forall a b + b a + = ,
+latex: \forall a, b \in \mathbb{C}, a + b = b + a
+
+## a list holding a relation keeps its brackets beside a relation
+rpn: a b c < , d =
+latex: (a, b < c) = d
+
+## a list beside an arrow keeps its brackets
+rpn: p q , r =>
+latex: (p, q) \implies r
+
 ## the real part is an upright function
 rpn: z Re
 latex: \operatorname{Re} z
@@ -629,6 +653,38 @@ latex: \begin{pmatrix} \sum_{n} a_{n} & x \\ c & d \end{pmatrix}
 rpn: [ [ a b col c ; d e mat
 latex: \begin{pmatrix} \begin{pmatrix} a \\ b \end{pmatrix} & c \\ d & e \end{pmatrix}
 
+## a tuple
+rpn: [ a b tuple
+latex: (a, b)
+
+## a tuple in a relation
+rpn: [ a b tuple reals 2 ^ in
+latex: (a, b) \in \mathbb{R}^{2}
+
+## a tuple with one entry
+rpn: [ x tuple
+latex: (x)
+
+## a tuple's entries are written bare, apart from a list
+rpn: [ a b + x 0 > c d , tuple
+latex: (a + b, x > 0, (c, d))
+
+## a tuple needs no more brackets
+rpn: f [ x y tuple * [ a b tuple 2 ^ +
+latex: f (x, y) + (a, b)^{2}
+
+## a function of a tuple
+rpn: [ x y tuple sin
+latex: \sin (x, y)
+
+## a tall tuple's brackets stretch
+rpn: [ 1 2 / b tuple
+latex: \left(\frac{1}{2}, b\right)
+
+## a tuple inside brackets
+rpn: [ a b tuple c + d *
+latex: ((a, b) + c) d
+
 # Values
 
 ## a borrowed Greek capital is upright
@@ -881,11 +937,24 @@ error: `mat` needs a mark `[` before its entries
 
 ## a mark that's never used
 rpn: [ a b
-error: this mark `[` is never used by a variadic operator (`mat`, `cases`, `col`)
+error: this mark `[` is never used by a variadic operator (`mat`, `cases`, `col`, `tuple`)
 
 ## an empty row
 rpn: [ a ; mat
 error: `mat` has an empty row
+
+## a tuple takes no rows
+rpn: [ a ; b tuple
+error: a `tuple` has one row of entries, so it takes no `;`
+
+## an empty tuple
+rpn: [ tuple
+error: this `tuple` has no entries
+
+## a break inside a tuple
+layout: multline
+rpn: [ a b + br c tuple
+error: `br` can't break a line inside a tuple
 
 ## an operator can't reach past a mark
 rpn: a [ b + mat

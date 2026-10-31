@@ -143,6 +143,8 @@ function M.parse_tokens(tokens, end_of_block)
         row[#row + 1] = item.node
       end
     end
+    if operator == "tuple" and #rows > 1 then fail(at, "a `tuple` has one row of entries, so it takes no `;`") end
+    if operator == "tuple" and #rows[1] == 0 then fail(at, "this `tuple` has no entries") end
     for _, row in ipairs(rows) do
       if #row == 0 then fail(at, ("`%s` has an empty row"):format(operator)) end
     end
@@ -177,7 +179,7 @@ function M.parse_tokens(tokens, end_of_block)
   --- Ends the current equation, at a top-level `;` or the end of the block.
   local function finish_equation(at)
     local mark = has_mark()
-    if mark then fail(mark.span, "this mark `[` is never used by a variadic operator (`mat`, `cases`, `col`)") end
+    if mark then fail(mark.span, "this mark `[` is never used by a variadic operator (`mat`, `cases`, `col`, `tuple`)") end
 
     local values = {}
     for _, item in ipairs(stack) do

@@ -121,7 +121,20 @@ function rank(node: Node): number {
 /** The decided atoms, and an accent over one (ẋ): these never get brackets anywhere. */
 function isAtom(node: Node): boolean {
   if (node.kind === "apply" && accents.has(node.operator)) return isAtom(node.args[0]!);
+  if (isTuple(node)) return true; // it brings its own brackets: sin (x, y), (a, b)^2
   return ["number", "variable", "named", "raw", "text"].includes(node.kind);
+}
+
+const isTuple = (node: Node): boolean => node.kind === "variadic" && node.operator === "tuple";
+
+/**
+ * A comma list whose items all bind more tightly than a relation, like
+ * a, b. Beside a relation it's written bare (a, b ∈ ℂ), since that's how
+ * maths reads it; a tuple is written with `tuple`.
+ */
+function isBareList(node: Node): boolean {
+  if (node.kind !== "apply" || node.operator !== ",") return false;
+  return node.args.every((item) => isBareList(item) || rank(item) > Rank.relation);
 }
 
 /** A letter with primes, like x''. */
@@ -138,7 +151,7 @@ function isSubscriptedAtom(node: Node): boolean {
 function isTall(node: Node): boolean {
   switch (node.kind) {
     case "variadic":
-      return true;
+      return isTuple(node) ? node.rows.flat().some(isTall) : true;
     case "apply":
       return ["/", "sum", "ser", "int"].includes(node.operator) || node.args.some(isTall);
     case "rawApply":
@@ -252,9 +265,10 @@ function infixBrackets(node: Node & { kind: "apply" }): { left: boolean; right: 
   const r = rank(node);
   const arrow = arrows.has(operator);
   const negOnRight = b.kind === "apply" && b.operator === "neg" && (operator === "+" || operator === "-");
+  const relation = relations.has(operator);
   return {
-    left: rank(a) < r || (rank(a) === r && arrow),
-    right: rank(b) < r || (rank(b) === r && !associative.has(operator)) || negOnRight,
+    left: (rank(a) < r && !(relation && isBareList(a))) || (rank(a) === r && arrow),
+    right: (rank(b) < r && !(relation && isBareList(b))) || (rank(b) === r && !associative.has(operator)) || negOnRight,
   };
 }
 
@@ -373,6 +387,16 @@ export function emitNode(node: Node, followed = false): string {
     case "rawApply":
       return `${node.command}${node.args.map((arg) => `{${boxed(arg, "a raw operator's argument")}}`).join("")}`;
     case "variadic": {
+      if (isTuple(node)) {
+        // Entries are separated by commas, so an entry that is itself a comma list is bracketed.
+        const entries = node.rows.flat().map((cell) => {
+          const out = child(cell, rank(cell) === Rank.comma);
+          if (out.includes(breakMark)) fail(cell, "`br` can't break a line inside a tuple");
+          return out;
+        });
+        const inner = entries.join(", ");
+        return isTall(node) ? `\\left(${inner}\\right)` : `(${inner})`;
+      }
       const env = variadicEnvironment[node.operator];
       if (env === undefined) throw new Error(`the emitter doesn't know the operator \`${node.operator}\``);
       // A column vector puts every entry on its own row.

@@ -145,6 +145,8 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
       if (item.kind === "row") rows.push([]);
       else if (item.kind === "value") rows[rows.length - 1]!.push(item.node);
     }
+    if (operator === "tuple" && rows.length > 1) fail(at, "a `tuple` has one row of entries, so it takes no `;`");
+    if (operator === "tuple" && rows[0]!.length === 0) fail(at, "this `tuple` has no entries");
     if (rows.some((row) => row.length === 0)) fail(at, `\`${operator}\` has an empty row`);
 
     const mark = stack[markIndex] as Extract<Item, { kind: "mark" }>;
@@ -172,7 +174,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
   /** Ends the current equation, at a top-level `;` or the end of the block. */
   function finishEquation(at: Span) {
     const mark = stack.find((item) => item.kind === "mark");
-    if (mark) fail(mark.span, "this mark `[` is never used by a variadic operator (`mat`, `cases`, `col`)");
+    if (mark) fail(mark.span, "this mark `[` is never used by a variadic operator (`mat`, `cases`, `col`, `tuple`)");
 
     const values = stack.flatMap((item) => (item.kind === "value" ? [item.node] : []));
     const [only, ...rest] = values;

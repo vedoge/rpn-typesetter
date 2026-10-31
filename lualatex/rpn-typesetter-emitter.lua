@@ -109,9 +109,23 @@ end
 local atoms = { number = true, variable = true, named = true, raw = true, text = true }
 
 --- The decided atoms, and an accent over one (ẋ): these never get brackets anywhere.
+local function is_tuple(node) return node.kind == "variadic" and node.operator == "tuple" end
+
 local function is_atom(node)
   if node.kind == "apply" and accents[node.operator] then return is_atom(node.args[1]) end
+  if is_tuple(node) then return true end -- it brings its own brackets: sin (x, y), (a, b)^2
   return atoms[node.kind] == true
+end
+
+--- A comma list whose items all bind more tightly than a relation, like
+--- a, b. Beside a relation it's written bare (a, b ∈ ℂ), since that's how
+--- maths reads it; a tuple is written with `tuple`.
+local function is_bare_list(node)
+  if node.kind ~= "apply" or node.operator ~= "," then return false end
+  for _, item in ipairs(node.args) do
+    if not (is_bare_list(item) or rank(item) > Rank.relation) then return false end
+  end
+  return true
 end
 
 --- A letter with primes, like x''.
@@ -136,7 +150,13 @@ local tall_operators = { ["/"] = true, sum = true, ser = true, int = true }
 --- Tall contents get brackets that stretch to fit (\left( … \right)).
 local function is_tall(node)
   local kind = node.kind
-  if kind == "variadic" then return true end
+  if kind == "variadic" then
+    if not is_tuple(node) then return true end
+    for _, row in ipairs(node.rows) do
+      if any(row, is_tall) then return true end
+    end
+    return false
+  end
   if kind == "apply" then return tall_operators[node.operator] or any(node.args, is_tall) end
   if kind == "rawApply" then return any(node.args, is_tall) end
   if kind == "product" then return any(node.factors, is_tall) end
@@ -240,9 +260,11 @@ local function infix(node)
   local a, b = node.args[1], node.args[2]
   local r = rank(node)
   local arrow = arrows[operator] ~= nil
-  local left = child(a, rank(a) < r or (rank(a) == r and arrow))
+  local relation = relations[operator] ~= nil
+  local left = child(a, (rank(a) < r and not (relation and is_bare_list(a))) or (rank(a) == r and arrow))
   local neg_on_right = b.kind == "apply" and b.operator == "neg" and (operator == "+" or operator == "-")
-  local right = child(b, rank(b) < r or (rank(b) == r and not associative[operator]) or neg_on_right)
+  local right = child(b, (rank(b) < r and not (relation and is_bare_list(b)))
+    or (rank(b) == r and not associative[operator]) or neg_on_right)
   local line_break = node.breakBefore and not breaks_off and break_before(is_aligning(operator)) or ""
   local align = node == align_at and "&" or ""
   -- A comma stays at the end of its line: a break goes after it.
@@ -336,6 +358,19 @@ emit_node = function(node, followed)
     return table.concat(out)
   end
   if kind == "variadic" then
+    if is_tuple(node) then
+      -- Entries are separated by commas, so an entry that is itself a comma list is bracketed.
+      local entries = {}
+      for _, row in ipairs(node.rows) do
+        for _, cell in ipairs(row) do
+          local out = child(cell, rank(cell) == Rank.comma)
+          if has_break(out) then fail(cell, "`br` can't break a line inside a tuple") end
+          entries[#entries + 1] = out
+        end
+      end
+      local inner = table.concat(entries, ", ")
+      return is_tall(node) and ("\\left(" .. inner .. "\\right)") or ("(" .. inner .. ")")
+    end
     local env = variadic_environment[node.operator]
     if env == nil then error(("the emitter doesn't know the operator `%s`"):format(node.operator), 0) end
     -- A column vector puts every entry on its own row.
