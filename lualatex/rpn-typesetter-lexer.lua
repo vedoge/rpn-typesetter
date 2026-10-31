@@ -24,8 +24,8 @@
 --
 -- Token kinds, with their fields:
 --   number { text }                      2
---   variable { name, subscript? }        x, x1
---   word { name, subscript? }            a reserved word: pi, sqrt
+--   variable { name, subscript?, primes? }   x, x1, x''
+--   word { name, subscript?, primes? }   a reserved word: pi, sqrt
 --   product { factors }                  4ac, 2pi; each factor is a number, variable or word
 --   symbol { symbol }                    + [ ; <= …
 --   raw { latex }                        \mathcal{F}
@@ -117,13 +117,15 @@ local function classify(chunk, span)
 
   if vocab.symbols[chunk] then return token("symbol", span, { symbol = chunk }) end
 
-  -- An optional number, then optional letters, then an optional subscript:
-  -- `2`, `x`, `4ac`, `2pi`, `sqrt`, `x1`, `2x12`.
+  -- An optional number, then optional letters, then an optional subscript,
+  -- then optional primes: `2`, `x`, `4ac`, `2pi`, `sqrt`, `x1`, `2x12`, `x''`, `x1'`.
   local num, i = read_number(chunk, 1)
   local letters = chunk:match("^[A-Za-z]+", i) or ""
   i = i + #letters
   local subscript = letters ~= "" and chunk:match("^%d+", i) or nil
   if subscript then i = i + #subscript end
+  local primes = letters ~= "" and chunk:match("^'+", i) or nil
+  if primes then i = i + #primes end
   if i > #chunk then
     local factors = {}
     if num then factors[#factors + 1] = { kind = "number", text = num } end
@@ -134,13 +136,20 @@ local function classify(chunk, span)
       if word.role == "operator" and subscript then
         return fail(("the operator `%s` can't take a subscript; did you mean `%s %s`?"):format(letters, subscript, letters))
       end
+      if word.role == "operator" and primes then
+        return fail(("the operator `%s` can't take a prime"):format(letters))
+      end
       if word.role == "operator" and num then
         return fail(("`%s` is glued to the operator `%s`; did you mean `%s %s`?"):format(num, letters, num, letters))
       end
-      factors[#factors + 1] = { kind = "word", name = letters, subscript = subscript }
+      factors[#factors + 1] = { kind = "word", name = letters, subscript = subscript, primes = primes and #primes }
     else
       for k = 1, #letters do
-        factors[#factors + 1] = { kind = "variable", name = letters:sub(k, k), subscript = k == #letters and subscript or nil }
+        local last = k == #letters
+        factors[#factors + 1] = {
+          kind = "variable", name = letters:sub(k, k),
+          subscript = last and subscript or nil, primes = last and primes and #primes or nil,
+        }
       end
     end
 
@@ -150,6 +159,9 @@ local function classify(chunk, span)
 
   if chunk:find("[A-Za-z]%d") then
     return fail(("`%s`: glued digits after letters are a subscript and must end the token (`x1` → x₁)"):format(chunk))
+  end
+  if chunk:find("'", 1, true) then
+    return fail(("`%s`: primes go at the end of a token, after a letter (`x''`, `x1'`)"):format(chunk))
   end
   if chunk:find("[A-Za-z0-9]") then
     for c in chunk:gmatch(".") do

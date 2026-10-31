@@ -34,7 +34,7 @@ local parser = require("rpn-typesetter-parser")
 local text = require("rpn-typesetter-text")
 local vocab = require("rpn-typesetter-vocabulary")
 
-local functions, subscripted, relations, arrows = vocab.functions, vocab.subscripted, vocab.relations, vocab.arrows
+local accents, functions, subscripted, relations, arrows = vocab.accents, vocab.functions, vocab.subscripted, vocab.relations, vocab.arrows
 
 local M = {}
 
@@ -61,8 +61,8 @@ local align_at = nil
 --- when it binds more loosely than its parent (the bracket rule in
 --- docs/design.md).
 local Rank = {
-  iff = 1, -- <=> iff
-  implies = 2, -- => implies impliedby
+  iff = 1, -- <=> iff Leftrightarrow
+  implies = 2, -- => implies impliedby Rightarrow Leftarrow
   ["or"] = 3,
   ["and"] = 4,
   relation = 5, -- = < <= in …
@@ -92,7 +92,7 @@ local function rank(node)
   if kind == "product" or kind == "juxtapose" then return Rank.multiplicative end
   if kind ~= "apply" then return Rank.atom end -- numbers, letters, raw LaTeX, text, matrices, raw operators
   local op = node.operator
-  if op == "<=>" or op == "iff" then return Rank.iff end
+  if vocab.equivalences[op] then return Rank.iff end
   if arrows[op] then return Rank.implies end
   if op == "or" then return Rank["or"] end
   if op == "and" then return Rank["and"] end
@@ -101,13 +101,21 @@ local function rank(node)
   if prefix_operators[op] then return Rank.prefix end
   if op == "*" or op == "/" then return Rank.multiplicative end
   if op == "^" or op == "ssc" or op == "!" then return Rank.script end
-  return Rank.atom -- sqrt draws its own enclosure
+  return Rank.atom -- sqrt draws its own enclosure, and an accent sits on its argument
 end
 
 local atoms = { number = true, variable = true, named = true, raw = true, text = true }
 
---- The decided atoms: these never get brackets anywhere.
-local function is_atom(node) return atoms[node.kind] == true end
+--- The decided atoms, and an accent over one (ẋ): these never get brackets anywhere.
+local function is_atom(node)
+  if node.kind == "apply" and accents[node.operator] then return is_atom(node.args[1]) end
+  return atoms[node.kind] == true
+end
+
+--- A letter with primes, like x''.
+local function has_primes(node)
+  return (node.kind == "variable" or node.kind == "named") and (node.primes or 0) > 0
+end
 
 --- An atom with a subscript, like x_i.
 local function is_subscripted_atom(node)
@@ -246,6 +254,9 @@ local function emit_apply(node, followed)
 
   if functions[operator] then return "\\" .. operator .. " " .. argument(a) end
 
+  local accent = accents[operator]
+  if accent then return accent .. "{" .. boxed(a, "an accent") .. "}" end
+
   local under = subscripted[operator]
   if under then return under .. "_{" .. boxed(a, "a subscript") .. "} " .. body(b) end
 
@@ -254,7 +265,16 @@ local function emit_apply(node, followed)
   elseif operator == "/" then
     return "\\frac{" .. boxed(a, "a fraction") .. "}{" .. boxed(b, "a fraction") .. "}"
   elseif operator == "^" then
-    return child(a, not is_atom(a) and not is_subscripted_atom(a)) .. "^{" .. boxed(b, "an exponent") .. "}"
+    -- A prime is already a superscript, so x'_1 with a power is grouped,
+    -- {x'_1}^2, or LaTeX reports a double superscript. (x'^2 is fine: LaTeX
+    -- merges a power straight after primes into the same superscript.)
+    local base
+    if is_subscripted_atom(a) and has_primes(a.args[1]) then
+      base = "{" .. emit_node(a) .. "}"
+    else
+      base = child(a, not is_atom(a) and not is_subscripted_atom(a))
+    end
+    return base .. "^{" .. boxed(b, "an exponent") .. "}"
   elseif operator == "ssc" then
     -- Subscripts are notational (tensor indices), so the base never gets
     -- visible brackets. A base that isn't an atom or a power goes in an
@@ -293,8 +313,9 @@ local variadic_environment = { mat = "pmatrix", col = "pmatrix", cases = "cases"
 emit_node = function(node, followed)
   local kind = node.kind
   if kind == "number" then return node.text end
-  if kind == "variable" then return node.name end
-  if kind == "named" or kind == "raw" then return node.latex end
+  if kind == "variable" then return node.name .. ("'"):rep(node.primes or 0) end
+  if kind == "named" then return node.latex .. ("'"):rep(node.primes or 0) end
+  if kind == "raw" then return node.latex end
   if kind == "text" then return "\\text{" .. node.text .. "}" end
   if kind == "product" or kind == "juxtapose" then
     local items = kind == "product" and node.factors or node.items

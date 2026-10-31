@@ -24,7 +24,7 @@
 
 import { parse, type Equation, type Node } from "./parser.js";
 import type { Diagnostic, Span } from "./lexer.js";
-import { arrows, functions, relations, subscripted } from "./vocabulary.js";
+import { accents, arrows, equivalences, functions, relations, subscripted } from "./vocabulary.js";
 
 /**
  * How the surrounding math lays out equations, which decides what a `br`
@@ -67,8 +67,8 @@ let alignAt: Node | undefined;
  * docs/design.md).
  */
 const Rank = {
-  iff: 1, // <=> iff
-  implies: 2, // => implies impliedby
+  iff: 1, // <=> iff Leftrightarrow
+  implies: 2, // => implies impliedby Rightarrow Leftarrow
   or: 3,
   and: 4,
   relation: 5, // = < <= in …
@@ -100,7 +100,7 @@ function rank(node: Node): number {
       return Rank.multiplicative;
     case "apply": {
       const op = node.operator;
-      if (op === "<=>" || op === "iff") return Rank.iff;
+      if (equivalences.has(op)) return Rank.iff;
       if (arrows.has(op)) return Rank.implies;
       if (op === "or") return Rank.or;
       if (op === "and") return Rank.and;
@@ -109,16 +109,22 @@ function rank(node: Node): number {
       if (prefixOperators.has(op)) return Rank.prefix;
       if (op === "*" || op === "/") return Rank.multiplicative;
       if (op === "^" || op === "ssc" || op === "!") return Rank.script;
-      return Rank.atom; // sqrt draws its own enclosure
+      return Rank.atom; // sqrt draws its own enclosure, and an accent sits on its argument
     }
     default:
       return Rank.atom; // numbers, letters, raw LaTeX, text, matrices, raw operators
   }
 }
 
-/** The decided atoms: these never get brackets anywhere. */
+/** The decided atoms, and an accent over one (ẋ): these never get brackets anywhere. */
 function isAtom(node: Node): boolean {
+  if (node.kind === "apply" && accents.has(node.operator)) return isAtom(node.args[0]!);
   return ["number", "variable", "named", "raw", "text"].includes(node.kind);
+}
+
+/** A letter with primes, like x''. */
+function hasPrimes(node: Node): boolean {
+  return (node.kind === "variable" || node.kind === "named") && (node.primes ?? 0) > 0;
 }
 
 /** An atom with a subscript, like x_i. */
@@ -283,6 +289,9 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
 
   if (functions.has(operator)) return `\\${operator} ${argument(a!)}`;
 
+  const accent = accents.get(operator);
+  if (accent !== undefined) return `${accent}{${boxed(a!, "an accent")}}`;
+
   const under = subscripted.get(operator);
   if (under !== undefined) return `${under}_{${boxed(a!, "a subscript")}} ${body(b!)}`;
 
@@ -291,8 +300,14 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
       return sideBySide([factor(a!, true), factor(b!, followed)], node.breakBefore && !breaksOff);
     case "/":
       return `\\frac{${boxed(a!, "a fraction")}}{${boxed(b!, "a fraction")}}`;
-    case "^":
-      return `${child(a!, !isAtom(a!) && !isSubscriptedAtom(a!))}^{${boxed(b!, "an exponent")}}`;
+    case "^": {
+      // A prime is already a superscript, so x'_1 with a power is grouped,
+      // {x'_1}^2, or LaTeX reports a double superscript. (x'^2 is fine: LaTeX
+      // merges a power straight after primes into the same superscript.)
+      const primedBase = isSubscriptedAtom(a!) && hasPrimes(a!.kind === "apply" ? a!.args[0]! : a!);
+      const base = primedBase ? `{${emitNode(a!)}}` : child(a!, !isAtom(a!) && !isSubscriptedAtom(a!));
+      return `${base}^{${boxed(b!, "an exponent")}}`;
+    }
     case "ssc": {
       // Subscripts are notational (tensor indices), so the base never gets
       // visible brackets. A base that isn't an atom or a power goes in an
@@ -335,9 +350,9 @@ export function emitNode(node: Node, followed = false): string {
     case "number":
       return node.text;
     case "variable":
-      return node.name;
+      return node.name + "'".repeat(node.primes ?? 0);
     case "named":
-      return node.latex;
+      return node.latex + "'".repeat(node.primes ?? 0);
     case "raw":
       return node.latex;
     case "text":

@@ -31,12 +31,13 @@ export type SymbolText = string;
 
 /**
  * One piece of a glued product: `4ac` has the factors 4, a and c. Digits
- * glued after letters are a subscript on the last letter: `x1` → x₁.
+ * glued after letters are a subscript on the last letter: `x1` → x₁. Primes
+ * glued at the end go on the last letter too: `x''` → x″, `x1'` → x₁′.
  */
 export type Factor =
   | { readonly kind: "number"; readonly text: string }
-  | { readonly kind: "variable"; readonly name: string; readonly subscript?: string }
-  | { readonly kind: "word"; readonly name: string; readonly subscript?: string };
+  | { readonly kind: "variable"; readonly name: string; readonly subscript?: string; readonly primes?: number }
+  | { readonly kind: "word"; readonly name: string; readonly subscript?: string; readonly primes?: number };
 
 export type Token = Span &
   (
@@ -164,12 +165,12 @@ function classify(text: string, span: Span): Token | Diagnostic {
 
   if (symbols.has(text)) return { kind: "symbol", symbol: text, ...span };
 
-  // An optional number, then optional letters, then an optional subscript:
-  // `2`, `x`, `4ac`, `2pi`, `sqrt`, `x1`, `2x12`.
-  const m = /^(\d+(?:\.\d+)?)?(?:([A-Za-z]+)(\d+)?)?$/.exec(text);
+  // An optional number, then optional letters, then an optional subscript,
+  // then optional primes: `2`, `x`, `4ac`, `2pi`, `sqrt`, `x1`, `2x12`, `x''`, `x1'`.
+  const m = /^(\d+(?:\.\d+)?)?(?:([A-Za-z]+)(\d+)?('+)?)?$/.exec(text);
   if (m) {
-    const [, num, letters = "", subscript] = m;
-    const sub = subscript === undefined ? {} : { subscript };
+    const [, num, letters = "", subscript, primes] = m;
+    const sub = { ...(subscript === undefined ? {} : { subscript }), ...(primes === undefined ? {} : { primes: primes.length }) };
     const factors: Factor[] = [];
     if (num !== undefined) factors.push({ kind: "number", text: num });
 
@@ -178,6 +179,9 @@ function classify(text: string, span: Span): Token | Diagnostic {
       // Reserved words win over a product of letters.
       if (word.role === "operator" && subscript !== undefined) {
         return fail(`the operator \`${letters}\` can't take a subscript; did you mean \`${subscript} ${letters}\`?`);
+      }
+      if (word.role === "operator" && primes !== undefined) {
+        return fail(`the operator \`${letters}\` can't take a prime`);
       }
       if (word.role === "operator" && num !== undefined) {
         return fail(`\`${num}\` is glued to the operator \`${letters}\`; did you mean \`${num} ${letters}\`?`);
@@ -196,6 +200,9 @@ function classify(text: string, span: Span): Token | Diagnostic {
 
   if (/[A-Za-z]\d/.test(text)) {
     return fail(`\`${text}\`: glued digits after letters are a subscript and must end the token (\`x1\` → x₁)`);
+  }
+  if (text.includes("'")) {
+    return fail(`\`${text}\`: primes go at the end of a token, after a letter (\`x''\`, \`x1'\`)`);
   }
   if (/[A-Za-z0-9]/.test(text) && [...text].some((c) => symbolCharacters.has(c))) {
     return fail(`\`${text}\` needs spaces: tokens are separated by whitespace`);

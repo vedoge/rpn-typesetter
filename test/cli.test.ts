@@ -1,8 +1,9 @@
-import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
+import { measurementId } from "../src/breaking.js";
 import { guardPrefix, isMainModule, latexMessage, main, version } from "../src/cli.js";
 
 describe("command-line tool", () => {
@@ -70,6 +71,77 @@ describe("command-line tool", () => {
     writeFileSync(source, "$@ 2 x$\n");
     expect(run(source)).toBe(0);
     expect(logged[0]).toMatch(/paper\.rtex:1:4: warning: 2 values were left on the stack/);
+  });
+
+  it("converts the .rtex files the document \\inputs or \\includes, and theirs", () => {
+    const source = join(dir, "paper.rtex");
+    writeFileSync(source, "\\input{one}\n\\include{parts/two.tex}\n% \\input{commented}\n\\input{plain}\n");
+    writeFileSync(join(dir, "one.rtex"), "$@ a b +$ \\input{three}\n");
+    mkdirSync(join(dir, "parts"));
+    writeFileSync(join(dir, "parts", "two.rtex"), "$@ c d +$\n");
+    writeFileSync(join(dir, "three.rtex"), "$@ e f +$ \\input{paper}\n"); // a cycle back to the start
+    writeFileSync(join(dir, "commented.rtex"), "$@ g$\n");
+    writeFileSync(join(dir, "plain.tex"), "untouched\n");
+    expect(run(source)).toBe(0);
+    expect(readFileSync(join(dir, "one.tex"), "utf8")).toContain("$ a + b $");
+    expect(readFileSync(join(dir, "parts", "two.tex"), "utf8")).toContain("$ c + d $");
+    expect(readFileSync(join(dir, "three.tex"), "utf8")).toContain("$ e + f $");
+    expect(existsSync(join(dir, "commented.tex"))).toBe(false);
+    expect(readFileSync(join(dir, "plain.tex"), "utf8")).toBe("untouched\n");
+  });
+
+  it("reports errors in an included file under its own name, numbering blocks across files", () => {
+    const source = join(dir, "paper.rtex");
+    writeFileSync(source, "$@ a +$ \\input{chapter}\n");
+    writeFileSync(join(dir, "chapter.rtex"), "Text.\n$@ b +$\n");
+    expect(run(source)).toBe(1);
+    expect(logged).toEqual([
+      `${source}:1:6: error: \`+\` needs 2 values, but only 1 is available`,
+      `${join(dir, "chapter.rtex")}:2:6: error: \`+\` needs 2 values, but only 1 is available`,
+    ]);
+    expect(readFileSync(join(dir, "paper.tex"), "utf8")).toContain("rpn-typesetter error 1\\endcsname");
+    expect(readFileSync(join(dir, "chapter.tex"), "utf8")).toContain("rpn-typesetter error 2\\endcsname");
+  });
+
+  it("measures and breaks equations in included files, with IDs unique across files", () => {
+    const source = join(dir, "paper.rtex");
+    const equation = "x a b + c + d + =";
+    writeFileSync(source, "\\documentclass{article}\n\\begin{document}\n\\input{one}\n\\include{two}\n\\end{document}\n");
+    writeFileSync(join(dir, "one.rtex"), `\\begin{align}@ ${equation} \\end{align}\n`);
+    writeFileSync(join(dir, "two.rtex"), `\\begin{align}@ ${equation} \\end{align}\n`);
+    // What LaTeX would write: the \input part's widths go in paper.aux, the
+    // \include'd part's in its own two.aux. Narrow enough to break once.
+    const widths = (id: string) =>
+      ["L 100", "N 10", "Q 20", "0 10", "1 30", "2 30", "3 30", "4 30"]
+        .map((w) => w.split(" "))
+        .map(([key, pt]) => `\\rpn@w{${id}}{${key}}{${pt}.0pt}\n`)
+        .join("");
+    writeFileSync(join(dir, "paper.aux"), widths(measurementId(equation, 0)));
+    writeFileSync(join(dir, "two.aux"), widths(measurementId(equation, 1)));
+
+    expect(run(source)).toBe(0);
+    expect(readFileSync(join(dir, "paper.tex"), "utf8")).toContain("\\providecommand\\rpnmeasure");
+    for (const [file, occurrence] of [["one.tex", 0], ["two.tex", 1]] as const) {
+      const tex = readFileSync(join(dir, file), "utf8");
+      expect(tex).toContain(`\\rpnmeasure{${measurementId(equation, occurrence)}}`);
+      expect(tex).toContain("\\notag \\\\ &\\qquad");
+    }
+  });
+
+  it("doesn't measure a part converted on its own, which has no preamble for the macros", () => {
+    const source = join(dir, "part.rtex");
+    writeFileSync(source, "\\begin{align}@ x a b + c + d + = \\end{align}\n");
+    expect(run(source)).toBe(0);
+    expect(readFileSync(join(dir, "part.tex"), "utf8")).not.toContain("rpnmeasure");
+  });
+
+  it("won't overwrite a hand-written .tex for an included file", () => {
+    const source = join(dir, "paper.rtex");
+    writeFileSync(source, "\\input{chapter}\n");
+    writeFileSync(join(dir, "chapter.rtex"), "$@ a$\n");
+    writeFileSync(join(dir, "chapter.tex"), "my own work\n");
+    expect(run(source)).toBe(2);
+    expect(readFileSync(join(dir, "chapter.tex"), "utf8")).toBe("my own work\n");
   });
 
   it("knows its version", () => {

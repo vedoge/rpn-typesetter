@@ -25,11 +25,15 @@ rpn-typesetter --version
 
 To update, run the same `npm install -g …` command again; it always fetches the latest release. To remove it, `npm uninstall -g rpn-typesetter`.
 
-Then tell `latexmk` about it, once, by adding this line to `~/.latexmkrc` (create the file if it doesn't exist):
+Then tell `latexmk` about it, once, by adding these lines to `~/.latexmkrc` (create the file if it doesn't exist):
 
 ```perl
 $pdflatex = 'rpn-typesetter --latexmk %S && pdflatex %O %R.tex';
+add_cus_dep('rtex', 'tex', 0, 'rtex2tex');
+sub rtex2tex { return system('rpn-typesetter', '--latexmk', "$_[0].rtex"); }
 ```
+
+The first line converts your document before each pdfLaTeX pass. The other two tell `latexmk` that a `.tex` file is made from the `.rtex` file of the same name, so it rebuilds when you edit a chapter your document `\input`s. (If you set this up before chapters were supported, add those two lines.)
 
 With `--latexmk`, the tool converts `.rtex` files and leaves ordinary `.tex` files alone, so your other documents build exactly as before. If you don't already build PDFs by default, add `$pdf_mode = 1;` too, or run `latexmk -pdf`. To set it up for one project only, copy [`examples/latexmkrc`](examples/latexmkrc) next to your document as `.latexmkrc` instead.
 
@@ -38,7 +42,7 @@ With `--latexmk`, the tool converts `.rtex` files and leaves ordinary `.tex` fil
 1. Write your document as `paper.rtex`: ordinary LaTeX, with RPN math wherever you want it.
 2. Run `latexmk paper.rtex`, or `latexmk -pvc paper.rtex` to rebuild on every save.
 
-Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`. Don't edit `paper.tex`: it's regenerated every time, and the tool refuses to overwrite a `paper.tex` it didn't write. Errors point at your `.rtex` file:
+Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`. A document split into files works too: `\input{chapter}` or `\include{chapter}` makes the tool convert `chapter.rtex` to `chapter.tex` as well, which LaTeX then reads. Write the name without `.rtex`, as LaTeX expects. Don't edit the generated `.tex` files: they're regenerated every time, and the tool refuses to overwrite a `.tex` file it didn't write. Errors point at your `.rtex` file:
 
 ```
 paper.rtex:12:8: error: `+` needs 2 values, but only 1 is available
@@ -93,11 +97,13 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 | `a b / ` · `a sqrt` · `a 2 ^` · `x i _` | a/b as a fraction · √a · a² · xᵢ |
 | `4ac` · `2pi` · `x1` | 4ac · 2π · x₁ (glued letters multiply; glued digits subscript) |
 | `b neg` · `n !` | −b · n! |
+| `x dot` · `x ddot` | ẋ · ẍ (time derivatives) |
+| `f'` · `x''` · `x1'` | f′ · x″ · x₁′ (glued primes) |
 | `alpha` · `Gamma` · `reals` · `infty` | α · Γ · ℝ · ∞ (LaTeX names, no backslash) |
 | `x sin` · `x y + sin` | sin x · sin(x + y) |
-| `0 x < 1 <=` | 0 < x ≤ 1 (also `>`, `>=`, `!=`, `->`, `<<`, `>>`) |
+| `0 x < 1 <=` | 0 < x ≤ 1 (also `>`, `>=`, `!=`, `->`, `<-`, `<<`, `>>`) |
 | `x reals in` · `a b approx` | x ∈ ℝ · a ≈ b (relations by name) |
-| `p q and r or s =>` | p ∧ q ∨ r ⇒ s (also `<=>`, `not`) |
+| `p q and r or s =>` | p ∧ q ∨ r ⟹ s (also `<=>`, `not`, and the short ⇒ ⇐ ⇔ as `Rightarrow`, `Leftarrow`, `Leftrightarrow`) |
 | `x exists` · `x forall` | ∃x · ∀x |
 | `x 0 -> x sin x / lim` | lim as x → 0 of sin x / x (also `liminf`, `limsup`) |
 | `x S in f max` · `A sup` | max over x ∈ S of f (also `min`, `argmax`, `argmin`) · sup A (also `inf`) |

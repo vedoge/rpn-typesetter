@@ -59,4 +59,4 @@ The same keys as `documents.cases`, plus:
 |---|---|
 | `aux` | The `.aux` file LaTeX wrote on the previous run, with the widths it measured. Without it, nothing has been measured yet. |
 
-Only the TypeScript command runs this file for now: how each implementation measures and breaks is still open (open question 8 in `docs/design.md`).
+Only the TypeScript command runs this file. The design log lets the two implementations choose different breaks, and the LuaLaTeX package doesn't measure yet.

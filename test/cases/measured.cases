@@ -1,10 +1,10 @@
 # Measured line breaks: whole documents, as documents.cases, plus an `aux`
 # key for what LaTeX measured on the previous run. See README.md.
 #
-# Only the TypeScript command runs these. How each implementation measures
-# and breaks is still open (design log, open question 8): the command
-# measures on one LaTeX run and breaks on the next, through .aux, while the
-# LuaLaTeX package could measure within a single run.
+# Only the TypeScript command runs these. The design log lets the two
+# implementations choose different breaks: the command measures on one LaTeX
+# run and breaks on the next, through .aux, while the LuaLaTeX package could
+# measure within a single run (it doesn't measure yet).
 
 ## the first run measures, and doesn't break
 document:

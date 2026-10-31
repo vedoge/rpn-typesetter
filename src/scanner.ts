@@ -67,6 +67,10 @@ export interface ConvertResult {
   /** Offsets are into the original document. */
   readonly errors: Diagnostic[];
   readonly warnings: Diagnostic[];
+  /** The files the document `\input`s or `\include`s, as written: `chapter`, `parts/two.tex`. */
+  readonly inputs: string[];
+  /** Whether the document has `\documentclass`: a whole document, not a part of one. */
+  readonly standalone: boolean;
 }
 
 /** A math region: where its contents start and end, and how it lays out equations. */
@@ -86,12 +90,24 @@ export interface ConvertOptions {
   readonly invalid?: (errors: readonly Diagnostic[]) => string;
   /** Widths LaTeX measured on the last run, read from the .aux file (see breaking.ts). */
   readonly measurements?: ReadonlyMap<string, Measurement>;
+  /**
+   * How often each equation's RPN has appeared, which measurement IDs
+   * include. Pass the same map for every file of a document, so an ID names
+   * one equation in the whole document. Updated as equations are measured.
+   */
+  readonly occurrences?: Map<string, number>;
+  /**
+   * Whether to measure. By default, a document is measured when it has
+   * \documentclass, where the measuring macros go. A part the document
+   * \inputs has none, so the caller says whether its document is measured.
+   */
+  readonly measure?: boolean;
 }
 
 /** Converts a whole `.rtex` document to LaTeX. */
 export function convert(document: string, options: ConvertOptions = {}): ConvertResult {
   const measurements = options.measurements ?? new Map<string, Measurement>();
-  const occurrences = new Map<string, number>(); // how often each equation's RPN has appeared
+  const occurrences = options.occurrences ?? new Map<string, number>(); // how often each equation's RPN has appeared
   let measuring = false; // whether any equation is measured, so the preamble needs the macros
   const errors: Diagnostic[] = [];
   const warnings: Diagnostic[] = [];
@@ -99,7 +115,12 @@ export function convert(document: string, options: ConvertOptions = {}): Convert
   let copiedTo = 0; // everything before this offset is in `pieces`
   let packagesAt: number | undefined; // just after \documentclass{…}
 
-  const regions = findRegions(document, (at) => (packagesAt ??= at));
+  const inputs: string[] = [];
+  const regions = findRegions(document, {
+    documentClass: (at) => (packagesAt ??= at),
+    input: (name) => inputs.push(name),
+  });
+  const measure = options.measure ?? packagesAt !== undefined;
 
   for (const region of regions) {
     const first = skipSpace(document, region.contentStart, region.contentEnd);
@@ -117,10 +138,10 @@ export function convert(document: string, options: ConvertOptions = {}): Convert
     // Equations in a display that holds several lines are measured, and broken
     // once their widths are known, unless the author breaks them by hand.
     // Measuring needs macros in the preamble, so only documents with
-    // \documentclass are measured.
+    // \documentclass, and the parts they \input, are measured.
     const emit = (eq: Equation): string => {
       const candidates = breakCandidates(eq.body);
-      if (region.layout === "single" || packagesAt === undefined || candidates.length === 0 || findBreak(eq.body)) {
+      if (region.layout === "single" || !measure || candidates.length === 0 || findBreak(eq.body)) {
         return emitEquation(eq, region.layout);
       }
       const key = rpn.slice(eq.start, eq.end).trim().split(/\s+/).join(" ");
@@ -181,10 +202,13 @@ export function convert(document: string, options: ConvertOptions = {}): Convert
     // \documentclass is ever rewritten, so it's still valid here.
     const missing = requiredPackages.filter((pkg) => !loadsPackage(document, pkg));
     const packages = missing.length > 0 ? `\\usepackage{${missing.join(",")}}` : "";
-    const macros = measuring ? measuringPreamble : "";
+    // A document that \inputs or \includes other files gets the macros too,
+    // in case those measure: only the preamble can hold them, and LaTeX
+    // needs \rpn@w defined before it reads the .aux files.
+    const macros = measuring || inputs.length > 0 ? measuringPreamble : "";
     output = `${output.slice(0, packagesAt)}${packages}${macros}${output.slice(packagesAt)}`;
   }
-  return { output, errors, warnings };
+  return { output, errors, warnings, inputs, standalone: packagesAt !== undefined };
 }
 
 /**
@@ -201,8 +225,14 @@ function loadsPackage(document: string, pkg: string): boolean {
   return false;
 }
 
+/** What findRegions reports besides regions: where \documentclass{…} ends, and each \input or \include. */
+interface Found {
+  documentClass(afterArgument: number): void;
+  input(name: string): void;
+}
+
 /** Finds every math region, plain or RPN, in document order. */
-function findRegions(document: string, onDocumentClass: (afterArgument: number) => void): Region[] {
+function findRegions(document: string, found: Found): Region[] {
   const regions: Region[] = [];
   let i = 0;
 
@@ -264,9 +294,14 @@ function findRegions(document: string, onDocumentClass: (afterArgument: number) 
 
     if (word === "documentclass") {
       const end = skipArgument(document, skipOptional(document, afterWord));
-      onDocumentClass(end);
+      found.documentClass(end);
       i = end;
       continue;
+    }
+
+    if (word === "input" || word === "include") {
+      const file = /^\s*\{([^{}]*)\}/.exec(document.slice(afterWord));
+      if (file) found.input(file[1]!.trim());
     }
 
     if (word === "ensuremath") {
