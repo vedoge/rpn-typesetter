@@ -134,7 +134,7 @@ const operators: Record<string, Arity> = {
   ser: 3,
   int: 4,
   br: "break",
-  mat: "variadic", cases: "variadic", col: "variadic",
+  mat: "variadic", cases: "variadic", col: "variadic", tuple: "variadic",
   vec: "undecided",
   ...Object.fromEntries(
     [...relations.keys(), ...arrows.keys()].filter((name) => /^[A-Za-z]/.test(name)).map((name) => [name, 2]),
