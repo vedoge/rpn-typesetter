@@ -245,6 +245,8 @@ end
 --- - keep_lines: each line break inside a replaced RPN block becomes `%` and
 ---   a line break, so every line keeps its number.
 --- - packages = false: don't add `\usepackage{amsmath,amssymb}`.
+--- - invalid: a function given the errors of one invalid block, returning
+---   LaTeX to put in its place. Without it, an invalid block is left as is.
 function M.convert(document, options)
   options = options or {}
   local errors, warnings, pieces = {}, {}, {}
@@ -262,15 +264,19 @@ function M.convert(document, options)
         return { start = d.start + rpn_start - 1, stop = d.stop + rpn_start - 1, message = d.message }
       end
 
+      local block_errors = {}
+      local function report(d) block_errors[#block_errors + 1] = shift(d) end
+
       local result = parser.parse(rpn)
-      for _, e in ipairs(result.errors) do errors[#errors + 1] = shift(e) end
+      for _, e in ipairs(result.errors) do report(e) end
       for _, w in ipairs(result.warnings) do warnings[#warnings + 1] = shift(w) end
       local second = result.equations[2]
 
+      local latex
       if #result.errors > 0 then
         -- reported above
       elseif second and (region.layout == "single" or region.layout == "multline") then
-        errors[#errors + 1] = shift({
+        report({
           start = second.start,
           stop = second.stop,
           message = region.name .. " holds one equation; use an environment like align or gather for several",
@@ -281,18 +287,20 @@ function M.convert(document, options)
           for k, equation in ipairs(result.equations) do out[k] = emitter.emit_equation(equation, region.layout) end
           return table.concat(out, " \\\\ ")
         end)
-        if not ok then
-          errors[#errors + 1] = shift(result_or_error)
-        else
-          local padding = ""
-          if options.keep_lines then
-            local _, breaks = document:sub(first, region.content_stop - 1):gsub("\n", "")
-            padding = ("%\n"):rep(breaks)
-          end
-          pieces[#pieces + 1] = document:sub(copied_to, first - 1)
-          pieces[#pieces + 1] = " " .. result_or_error .. " " .. padding
-          copied_to = region.content_stop
+        if ok then latex = result_or_error else report(result_or_error) end
+      end
+
+      for _, e in ipairs(block_errors) do errors[#errors + 1] = e end
+      if #block_errors > 0 and options.invalid then latex = options.invalid(block_errors) end
+      if latex then
+        local padding = ""
+        if options.keep_lines then
+          local _, breaks = document:sub(first, region.content_stop - 1):gsub("\n", "")
+          padding = ("%\n"):rep(breaks)
         end
+        pieces[#pieces + 1] = document:sub(copied_to, first - 1)
+        pieces[#pieces + 1] = " " .. latex .. " " .. padding
+        copied_to = region.content_stop
       end
     end
   end

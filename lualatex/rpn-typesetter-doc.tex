@@ -1,0 +1,134 @@
+% The rpn-typesetter package's documentation. It's typeset with the package
+% itself: each example shows the RPN as written, then what it becomes.
+%   lualatex rpn-typesetter-doc.tex
+\documentclass{article}
+\usepackage{rpn-typesetter}
+\usepackage{booktabs}
+\makeatletter
+% "2026/10/31 v0.1.0 RPN math …" → "v0.1.0, 2026/10/31"
+\def\rpn@version#1 #2 #3\relax{#2, #1}
+\edef\rpnversion{\expandafter\expandafter\expandafter\rpn@version\csname ver@rpn-typesetter.sty\endcsname\relax}
+\makeatother
+\title{The \texttt{rpn-typesetter} package}
+\author{\url{https://github.com/vedoge/rpn-typesetter}}
+\date{\rpnversion}
+\providecommand\url[1]{\texttt{#1}}
+\newcommand\rpn[1]{\texttt{#1}}
+
+\begin{document}
+\maketitle
+
+\section{What it does}
+
+Math written in RPN (postfix notation) needs no grouping brackets: values come
+first, then the operator that combines them, so \verb|a b + c *| is $(a + b)c$.
+This package converts RPN math to ordinary LaTeX during the LuaLaTeX run,
+adding brackets only where the maths needs them. Math is RPN when it starts
+with \verb|@|:
+\begin{verbatim}
+The roots are \[@ x b neg b 2 ^ 4ac - sqrt + 2a / = \]
+\end{verbatim}
+gives: The roots are \[@ x b neg b 2 ^ 4ac - sqrt + 2a / = \]
+
+The \verb|@| works after any math delimiter (\verb|$@ |\dots\verb|$|,
+\verb|\(@ |\dots\verb|\)|, \verb|\[@ |\dots\verb|\]|,
+\verb|\ensuremath{@ |\dots\verb|}|) and at the start of any math environment
+(\verb|\begin{align}@ |\dots). Math without it is left exactly as written, so
+the two mix freely. To write plain math that starts with \verb|@|, put
+\verb|{}| first: \verb|${}@$|.
+
+The language is still being designed, so spellings may change between
+versions.
+
+\section{Using the package}
+
+Load it in the preamble, and build with LuaLaTeX (\verb|lualatex paper.tex|,
+or \verb|latexmk -lualatex paper.tex|):
+\begin{verbatim}
+\documentclass{article}
+\usepackage{rpn-typesetter}
+\end{verbatim}
+RPN is converted anywhere after the \verb|\usepackage| line, in the document
+and in the \verb|.tex| files it \verb|\input|s or \verb|\include|s.
+
+The package loads \verb|amsmath| and \verb|unicode-math| at the end of the
+preamble, unless something has loaded them already, so your own options for
+them always win. With \verb|\usepackage[unicode-math=false]{rpn-typesetter}|
+it loads \verb|amssymb| instead, keeping LaTeX's traditional math fonts.
+
+Under pdfLaTeX the package does nothing. There, the separate
+\verb|rpn-typesetter| command converts the document before pdfLaTeX runs; see
+the project page.
+
+\subsection{Mistakes}
+
+Invalid RPN, such as an operator without enough values, is reported with its
+file, line and column, then as a LaTeX error, where TeX reaches it:
+\begin{verbatim}
+paper.tex:12:8: error: `+` needs 2 values, but only 1 is available
+! Package rpn-typesetter Error: `+` needs 2 values, but only 1 is
+available.
+\end{verbatim}
+As with any LaTeX error, TeX stops and waits; press Return to carry on. The
+block is typeset as \textbf{??}, like a missing reference.
+
+Values left over at the end, as in \verb|2 x 2 ^|, are set side by side
+($@ 2 x 2 ^$), with a warning in the log, since an operator may be missing.
+
+\section{The language in brief}
+
+Tokens are separated by spaces. Letters glued together multiply, and digits
+glued after letters are a subscript.
+
+\begin{center}
+\renewcommand\arraystretch{1.6}
+\begin{tabular}{@{}ll@{}}
+\toprule
+You write & You get \\
+\midrule
+\verb|a b + c *| & $@ a b + c *$ \\
+\verb|a b /| \quad \verb|a sqrt| \quad \verb|a 2 ^| \quad \verb|x i _| & $@ a b /$ \quad $@ a sqrt$ \quad $@ a 2 ^$ \quad $@ x i _$ \\
+\verb|4ac| \quad \verb|2pi| \quad \verb|x1| & $@ 4ac$ \quad $@ 2pi$ \quad $@ x1$ \\
+\verb|b neg| \quad \verb|n !| & $@ b neg$ \quad $@ n !$ \\
+\verb|alpha Gamma reals infty| & $@ alpha$ \quad $@ Gamma$ \quad $@ reals$ \quad $@ infty$ \\
+\verb|x sin| \quad \verb|x y + sin| & $@ x sin$ \quad $@ x y + sin$ \\
+\verb|0 x < 1 <=| & $@ 0 x < 1 <=$ \\
+\verb|x reals in| \quad \verb|a b approx| & $@ x reals in$ \quad $@ a b approx$ \\
+\verb|p q and r or s =>| & $@ p q and r or s =>$ \\
+\verb|x exists| \quad \verb|x forall| & $@ x exists$ \quad $@ x forall$ \\
+\verb|x 0 -> x sin x / lim| & $@ x 0 -> x sin x / lim$ \\
+\verb|x S in f max| \quad \verb|A sup| & $@ x S in f max$ \quad $@ A sup$ \\
+\verb|n a n _ sum| & $@ n a n _ sum$ \\
+\verb|n 1 = infty 1 n 2 ^ / ser| & $@ n 1 = infty 1 n 2 ^ / ser$ \\
+\verb|0 pi x sin x int| & $@ 0 pi x sin x int$ \\
+\verb|[ a b ; c d mat| & $@ [ a b ; c d mat$ \\
+\verb|[ 1 x 0 = ; 0 "otherwise" cases| & $@ [ 1 x 0 = ; 0 "otherwise" cases$ \\
+\verb|\mathcal{F}| \quad \verb|a b \overset/2| & $@ \mathcal{F}$ \quad $@ a b \overset/2$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\verb|[| marks where a matrix's entries start, and \verb|;| ends a row.
+Quoted text is upright. A token starting with \verb|\| is passed through as
+LaTeX.
+
+In a display environment, \verb|;| separates equations, which line up at
+their relations in \verb|align|; \verb|br| after an operator breaks the line
+before it; and \verb|\label{|\dots\verb|}| and \verb|\notag| go inside the
+RPN, with the equation they belong to:
+\begin{verbatim}
+\begin{align}@
+  x a b + 2 ^ = a 2 ^ 2ab + b 2 ^ + = br ;
+  \label{eq:basel} n 1 = infty 1 n 2 ^ / ser pi 2 ^ 6 / =
+\end{align}
+\end{verbatim}
+gives
+\begin{align}@
+  x a b + 2 ^ = a 2 ^ 2ab + b 2 ^ + = br ;
+  \label{eq:basel} n 1 = infty 1 n 2 ^ / ser pi 2 ^ 6 / =
+\end{align}
+
+The full rules, and the reasons for them, are in the design log on the
+project page.
+
+\end{document}

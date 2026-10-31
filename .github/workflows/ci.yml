@@ -68,9 +68,16 @@ jobs:
         working-directory: examples/lualatex
         env:
           # As if lualatex/ were installed in the TeX tree.
-          TEXINPUTS: ${{ github.workspace }}/lualatex//:
-          LUAINPUTS: ${{ github.workspace }}/lualatex//:
+          TEXINPUTS: "${{ github.workspace }}/lualatex//:"
+          LUAINPUTS: "${{ github.workspace }}/lualatex//:"
         run: latexmk -lualatex -interaction=nonstopmode -halt-on-error demo.tex
+      - name: Build the CTAN upload, documentation and all
+        run: npm run ctan
+      - name: Upload the CTAN zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctan
+          path: rpn-typesetter-ctan.zip
       - name: Upload the PDFs
         if: always()
         uses: actions/upload-artifact@v4

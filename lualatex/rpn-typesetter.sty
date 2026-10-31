@@ -1,8 +1,14 @@
 % rpn-typesetter: write LaTeX math in RPN, converted inside the LuaLaTeX run.
 % The conversion is the same as the rpn-typesetter command's; see
 % rpn-typesetter.lua for how it reaches TeX.
-\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\NeedsTeXFormat{LaTeX2e}[2022/11/01]
 \ProvidesPackage{rpn-typesetter}[2026/10/31 v0.1.0 RPN math for LuaLaTeX]
+
+% Options. unicode-math=false keeps LaTeX's traditional math fonts.
+\newif\ifrpntypesetter@unicodemath
+\rpntypesetter@unicodemathtrue
+\DeclareKeys{unicode-math .if = rpntypesetter@unicodemath}
+\ProcessKeyOptions
 
 % Under pdfLaTeX the rpn-typesetter command has already converted the RPN,
 % so the package does nothing, and one source file serves both.
@@ -13,12 +19,23 @@
   \expandafter\endinput
 \fi
 
-% The output needs \text, pmatrix and cases (amsmath) and \mathbb (amssymb).
-% They load at the end of the preamble, so a package the author loads, with
-% any options, isn't loaded twice.
+% The output needs \text, pmatrix and cases (amsmath), and \mathbb and the
+% other symbols (unicode-math, or amssymb without it). They load at the end
+% of the preamble, each only if nothing has loaded it yet, so the author's
+% own options always win; amsmath comes first, as unicode-math needs.
 \AddToHook{begindocument/before}{%
   \@ifpackageloaded{amsmath}{}{\RequirePackage{amsmath}}%
-  \@ifpackageloaded{amssymb}{}{\RequirePackage{amssymb}}}
+  \ifrpntypesetter@unicodemath
+    \@ifpackageloaded{unicode-math}{}{\RequirePackage{unicode-math}}%
+  \else
+    \@ifpackageloaded{unicode-math}{}{\@ifpackageloaded{amssymb}{}{\RequirePackage{amssymb}}}%
+  \fi}
+
+% An invalid RPN block becomes \RPNTypesetterInvalid{n}: an error, then ??
+% in bold, like a missing reference.
+\protected\def\RPNTypesetterInvalid#1{%
+  \directlua{require("rpn-typesetter").invalid(#1)}%
+  \mbox{\normalfont\bfseries ??}}
 
 \directlua{require("rpn-typesetter").start()}
 \AtBeginDocument{\directlua{require("rpn-typesetter").begin_document()}}

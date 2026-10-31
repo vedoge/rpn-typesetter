@@ -7,3 +7,6 @@ examples/*.tex
 *.fls
 *.fdb_latexmk
 *.pdf
+
+# The CTAN upload, from npm run ctan.
+rpn-typesetter-ctan.zip
