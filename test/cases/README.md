@@ -50,3 +50,13 @@ The errors, warnings and equations must match exactly, with none missing and non
 | `output` | The converted document, without the guard line the command-line tool adds. |
 | `error` | `line:column: message`, for an expected error. With errors, `output` isn't checked. |
 | `warning` | `line:column: message`, for an expected warning. |
+
+## `measured.cases`: measured line breaks (TypeScript only)
+
+The same keys as `documents.cases`, plus:
+
+| Key | Meaning |
+|---|---|
+| `aux` | The `.aux` file LaTeX wrote on the previous run, with the widths it measured. Without it, nothing has been measured yet. |
+
+Only the TypeScript command runs this file. The design log lets the two implementations choose different breaks, and the LuaLaTeX package doesn't measure yet.

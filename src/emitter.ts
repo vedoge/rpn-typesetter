@@ -53,6 +53,11 @@ const breakBefore = (relation: boolean) => `${breakMark}${relation ? "r" : "o"}`
 
 /** Set while writing \vphantom contents, which must not break. */
 let breaksOff = false;
+/** Breaks the tool chose by measuring (see breaking.ts), on top of the author's `br`s. */
+let autoBreaks: ReadonlySet<Node> = new Set();
+/** While cutting an equation into pieces to measure: the operators to cut before. */
+let pieceCuts: ReadonlySet<Node> | undefined;
+const pieceMark = "\u0001";
 /** The relation that gets `&` in an aligned layout, if any. */
 let alignAt: Node | undefined;
 
@@ -226,17 +231,55 @@ function body(node: Node): string {
  * differently to different readers.
  */
 function infix(node: Node & { kind: "apply" }): string {
+  const [a, b] = node.args as [Node, Node];
+  const brackets = infixBrackets(node);
+  const left = child(a, brackets.left);
+  const right = child(b, brackets.right);
+  const lineBreak = isBroken(node) && !breaksOff ? breakBefore(isAligning(node.operator)) : "";
+  const cut = pieceCuts?.has(node) ? pieceMark : "";
+  const align = node === alignAt ? "&" : "";
+  return `${left} ${lineBreak}${cut}${align}${infixLatex.get(node.operator)} ${right}`;
+}
+
+/** Which children of an infix node get brackets. */
+function infixBrackets(node: Node & { kind: "apply" }): { left: boolean; right: boolean } {
   const { operator } = node;
   const [a, b] = node.args as [Node, Node];
   const r = rank(node);
   const arrow = arrows.has(operator);
-  const left = child(a, rank(a) < r || (rank(a) === r && arrow));
   const negOnRight = b.kind === "apply" && b.operator === "neg" && (operator === "+" || operator === "-");
-  const right = child(b, rank(b) < r || (rank(b) === r && !associative.has(operator)) || negOnRight);
-  const lineBreak = node.breakBefore && !breaksOff ? breakBefore(isAligning(operator)) : "";
-  const align = node === alignAt ? "&" : "";
-  return `${left} ${lineBreak}${align}${infixLatex.get(operator)} ${right}`;
+  return {
+    left: rank(a) < r || (rank(a) === r && arrow),
+    right: rank(b) < r || (rank(b) === r && !associative.has(operator)) || negOnRight,
+  };
 }
+
+const isBroken = (node: Node): boolean => (node.kind === "apply" && node.breakBefore === true) || autoBreaks.has(node);
+
+/**
+ * Where the tool may break an equation by itself, in reading order: the
+ * relations, arrows, `+`, `-`, `and` and `or` at the top level, meaning not
+ * inside any brackets or boxes.
+ */
+export function breakCandidates(body: Node): Node[] {
+  if (body.kind !== "apply" || !infixLatex.has(body.operator)) return [];
+  const [a, b] = body.args as [Node, Node];
+  const brackets = infixBrackets(body);
+  return [...(brackets.left ? [] : breakCandidates(a)), body, ...(brackets.right ? [] : breakCandidates(b))];
+}
+
+/** Cuts an equation's LaTeX into the pieces between `candidates`, for measuring. */
+export function emitPieces(body: Node, candidates: readonly Node[]): string[] {
+  pieceCuts = new Set(candidates);
+  try {
+    return emitNode(body).split(pieceMark).map((piece) => piece.trim());
+  } finally {
+    pieceCuts = undefined;
+  }
+}
+
+/** Whether an operator is one an aligned layout lines up at (a relation or an arrow). */
+export const isAligningOperator = (operator: string): boolean => isAligning(operator);
 
 function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
   const { operator, args } = node;
@@ -334,8 +377,8 @@ export function emitNode(node: Node, followed = false): string {
   }
 }
 
-/** The first node `br` breaks before, if any. */
-function findBreak(node: Node): Node | undefined {
+/** The first node the author's `br` breaks before, if any. */
+export function findBreak(node: Node): Node | undefined {
   if (node.kind === "apply" && node.breakBefore) return node;
   const children =
     node.kind === "apply" || node.kind === "rawApply" ? node.args
@@ -356,7 +399,7 @@ function findBreak(node: Node): Node | undefined {
  * chain only continues through relations, so in a = b ⇒ c = d it's the ⇒.
  * Arrows don't chain, because an arrow's arrow child is in brackets.
  */
-function leftmostRelation(node: Node): Node | undefined {
+export function leftmostRelation(node: Node): Node | undefined {
   if (node.kind !== "apply" || !isAligning(node.operator)) return undefined;
   if (arrows.has(node.operator)) return node;
   let found: Node = node;
@@ -371,21 +414,27 @@ function leftmostRelation(node: Node): Node | undefined {
  * every line, lines that end in a break get \notag, so the equation is
  * numbered once, on its last line.
  */
-export function emitEquation(equation: Equation, layout: Layout = "single"): string {
+export function emitEquation(
+  equation: Equation,
+  layout: Layout = "single",
+  options: { readonly breaks?: ReadonlySet<Node> } = {},
+): string {
   const { body } = equation;
   if (layout === "single") {
     const broken = findBreak(body);
     if (broken) fail(broken, "`br` needs a display that can hold several lines, like multline, align or gather");
   }
 
+  autoBreaks = options.breaks ?? new Set();
   alignAt = layout === "aligned" ? leftmostRelation(body) : undefined;
-  if (alignAt?.kind === "apply" && alignAt.breakBefore) alignAt = undefined; // its break supplies the &
+  if (alignAt && isBroken(alignAt)) alignAt = undefined; // its break supplies the &
   let out: string;
   try {
     out = emitNode(body);
   } finally {
     alignAt = undefined;
     breaksOff = false;
+    autoBreaks = new Set();
   }
 
   const notag = layout === "aligned" || layout === "lines" ? "\\notag " : "";

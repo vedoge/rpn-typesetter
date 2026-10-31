@@ -61,7 +61,9 @@ describe.skipIf(!hasLatex)("pdflatex accepts the expected output", () => {
   it("of every document case", () => {
     const body: string[] = [];
     const starts: { line: number; name: string }[] = [];
-    for (const c of readCases(`${casesDir}documents.cases`)) {
+    // measured.cases outputs carry the measuring macros, so compiling them
+    // checks pdfLaTeX accepts those too.
+    for (const c of ["documents.cases", "measured.cases"].flatMap((file) => readCases(`${casesDir}${file}`))) {
       const output = single(c, "output");
       if (output === undefined || all(c, "error").length > 0) continue;
       if (output.includes("\\documentclass")) {

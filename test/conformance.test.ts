@@ -5,6 +5,7 @@
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { toLatex, type Layout } from "../src/emitter.js";
+import { readMeasurements } from "../src/breaking.js";
 import { convert, locate } from "../src/scanner.js";
 import { all, readCases, single } from "./cases.js";
 
@@ -27,20 +28,25 @@ describe("blocks.cases", () => {
   }
 });
 
-describe("documents.cases", () => {
-  for (const c of readCases(`${casesDir}documents.cases`)) {
-    it(c.name, () => {
-      const document = single(c, "document");
-      if (document === undefined) throw new Error("a document case needs `document`");
+// measured.cases has the same keys plus `aux`, and only this implementation
+// runs it (see its header).
+for (const file of ["documents.cases", "measured.cases"]) {
+  describe(file, () => {
+    for (const c of readCases(`${casesDir}${file}`)) {
+      it(c.name, () => {
+        const document = single(c, "document");
+        if (document === undefined) throw new Error("a document case needs `document`");
 
-      const result = convert(document);
-      const at = (d: { start: number; message: string }) => {
-        const { line, column } = locate(document, d.start);
-        return `${line}:${column}: ${d.message}`;
-      };
-      expect(result.errors.map(at)).toEqual(all(c, "error"));
-      expect(result.warnings.map(at)).toEqual(all(c, "warning"));
-      if (result.errors.length === 0) expect(result.output).toBe(single(c, "output"));
-    });
-  }
-});
+        const aux = single(c, "aux");
+        const result = convert(document, aux === undefined ? {} : { measurements: readMeasurements(aux) });
+        const at = (d: { start: number; message: string }) => {
+          const { line, column } = locate(document, d.start);
+          return `${line}:${column}: ${d.message}`;
+        };
+        expect(result.errors.map(at)).toEqual(all(c, "error"));
+        expect(result.warnings.map(at)).toEqual(all(c, "warning"));
+        if (result.errors.length === 0) expect(result.output).toBe(single(c, "output"));
+      });
+    }
+  });
+}
