@@ -27,8 +27,8 @@
 --
 -- Node kinds, with their fields (every node also has `start` and `stop`):
 --   number { text }                          2
---   variable { name }                        x
---   named { name, latex }                    pi → \pi
+--   variable { name, primes? }               x, x''
+--   named { name, latex, primes? }           pi → \pi
 --   raw { latex }                            \mathcal{F}
 --   text { text }                            "if "
 --   product { factors }                      glued: 4ac
@@ -62,7 +62,8 @@ local function fail(span, message)
   error({ parse_error = true, diagnostic = { start = span.start, stop = span.stop, message = message } }, 0)
 end
 
---- A single factor as a node. A glued subscript becomes `ssc`: `x1` → x 1 ssc.
+--- A single factor as a node. Primes stay on the letter; a glued subscript
+--- becomes `ssc`: `x1'` → x' 1 ssc.
 local function factor_node(factor, span)
   local function node(kind, fields)
     local n = { kind = kind, start = span.start, stop = span.stop }
@@ -72,10 +73,10 @@ local function factor_node(factor, span)
   local base
   if factor.kind == "number" then return node("number", { text = factor.text }) end
   if factor.kind == "variable" then
-    base = node("variable", { name = factor.name })
+    base = node("variable", { name = factor.name, primes = factor.primes })
   else
     local word = vocab.vocabulary[factor.name]
-    base = node("named", { name = factor.name, latex = word and word.role == "value" and word.latex or factor.name })
+    base = node("named", { name = factor.name, latex = word and word.role == "value" and word.latex or factor.name, primes = factor.primes })
   end
   if factor.subscript == nil then return base end
   return node("apply", { operator = "ssc", args = { base, node("number", { text = factor.subscript }) } })

@@ -77,22 +77,31 @@ M.subscripted = {
   argmax = "\\operatorname*{arg\\,max}", argmin = "\\operatorname*{arg\\,min}",
 }
 
+--- Accents over a value, taking one: `x dot` → ẋ (Newton's notation for derivatives). Each maps to its LaTeX.
+M.accents = { dot = "\\dot", ddot = "\\ddot" }
+
 --- Relations, all binding like `=`, and the LaTeX each writes. Common ones
 --- have an ASCII spelling; every one has a name.
 M.relations = {
   ["="] = "=", ["<"] = "<", [">"] = ">",
-  ["<="] = "\\leq", [">="] = "\\geq", ["!="] = "\\neq", ["<<"] = "\\ll", [">>"] = "\\gg", ["->"] = "\\to",
+  ["<="] = "\\leq", [">="] = "\\geq", ["!="] = "\\neq", ["<<"] = "\\ll", [">>"] = "\\gg", ["->"] = "\\to", ["<-"] = "\\leftarrow",
   leq = "\\leq", geq = "\\geq", neq = "\\neq", ll = "\\ll", gg = "\\gg", to = "\\to",
   approx = "\\approx", equiv = "\\equiv", sim = "\\sim", propto = "\\propto",
   ["in"] = "\\in", notin = "\\notin", subset = "\\subset", subseteq = "\\subseteq", supset = "\\supset",
-  mapsto = "\\mapsto", perp = "\\perp",
+  mapsto = "\\mapsto", perp = "\\perp", rightarrow = "\\rightarrow", leftarrow = "\\leftarrow",
 }
 
---- Logical arrows. They bind more loosely than `and` and `or`; `iff` most loosely of all.
+--- Logical arrows. They bind more loosely than `and` and `or`; `iff` and
+--- `Leftrightarrow` most loosely of all. `Rightarrow` and its kin are the
+--- short glyphs (⇒) of `implies` and its kin (⟹).
 M.arrows = {
   ["=>"] = "\\implies", implies = "\\implies", impliedby = "\\impliedby",
   ["<=>"] = "\\iff", iff = "\\iff",
+  Rightarrow = "\\Rightarrow", Leftarrow = "\\Leftarrow", Leftrightarrow = "\\Leftrightarrow",
 }
+
+--- The arrows that bind most loosely of all.
+M.equivalences = { ["<=>"] = true, iff = true, Leftrightarrow = true }
 
 local function is_name(spelling) return spelling:find("^[A-Za-z]") ~= nil end
 
@@ -126,6 +135,7 @@ for _, table in ipairs { M.relations, M.arrows } do
 end
 for name in pairs(M.functions) do operators[name] = 1 end
 for name in pairs(M.subscripted) do operators[name] = 2 end
+for name in pairs(M.accents) do operators[name] = 1 end
 operators.gcd, operators.hom = "undecided", "undecided"
 
 --- Every reserved word: `{ role = "value", latex = … }` or `{ role = "operator", arity = … }`.

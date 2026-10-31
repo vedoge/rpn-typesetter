@@ -3,13 +3,18 @@
 # Per project: copy this file next to paper.rtex as `.latexmkrc` and run
 # `latexmk paper.rtex` (or `latexmk -pvc paper.rtex` to rebuild on every save).
 #
-# For every project at once: put the $pdflatex line in ~/.latexmkrc instead.
+# For every project at once: put these lines in ~/.latexmkrc instead.
 # `--latexmk` makes rpn-typesetter convert .rtex files and leave ordinary .tex
 # files alone, so your other documents build exactly as before.
 #
-# Every pdfLaTeX pass first turns paper.rtex into paper.tex, then compiles
-# paper.tex. If any RPN is invalid, rpn-typesetter exits with an error, so
-# pdfLaTeX never runs.
+# Every pdfLaTeX pass first turns paper.rtex into paper.tex, along with the
+# .rtex files it \input's or \include's, then compiles paper.tex. Invalid RPN
+# becomes a LaTeX error and a bold ?? where LaTeX reaches it.
 
 $pdf_mode = 1;
 $pdflatex = 'rpn-typesetter --latexmk %S && pdflatex %O %R.tex';
+
+# Tells latexmk that a .tex file is made from the .rtex file of the same name,
+# so editing an \input'ed chapter.rtex alone still triggers a rebuild.
+add_cus_dep('rtex', 'tex', 0, 'rtex2tex');
+sub rtex2tex { return system('rpn-typesetter', '--latexmk', "$_[0].rtex"); }

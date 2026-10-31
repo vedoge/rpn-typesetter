@@ -274,6 +274,14 @@ latex: a + b \leq c d
 rpn: in
 error: `in` needs 2 values, but none is available
 
+## <- is \leftarrow, the mirror of ->
+rpn: x 0 <-
+latex: x \leftarrow 0
+
+## the single arrows by name bind like relations
+rpn: a b + c rightarrow d leftarrow
+latex: a + b \rightarrow c \leftarrow d
+
 # Logical arrows
 
 ## => is \implies
@@ -307,6 +315,23 @@ latex: (p \implies q) \implies r
 ## an arrow chain is bracketed on the right
 rpn: p q r => =>
 latex: p \implies (q \implies r)
+
+## the short double arrows bind like implies and iff
+rpn: p q and r Rightarrow
+latex: p \wedge q \Rightarrow r
+
+## Leftrightarrow binds looser than Rightarrow and Leftarrow
+rpn: p q Rightarrow r s Leftarrow Leftrightarrow
+latex: p \Rightarrow q \Leftrightarrow r \Leftarrow s
+
+## a chain of short arrows is bracketed too
+rpn: p q Rightarrow r Rightarrow
+latex: (p \Rightarrow q) \Rightarrow r
+
+## an aligned layout lines up at a short arrow
+rpn: a b = c d = Rightarrow
+layout: aligned
+latex: a = b &\Rightarrow c = d
 
 # Logical not
 
@@ -371,6 +396,95 @@ latex: x \to \infty
 ## oo is no longer reserved
 rpn: oo
 latex: o o
+
+# Accents
+
+## a dot is a time derivative
+rpn: x dot
+latex: \dot{x}
+
+## two dots are a second derivative
+rpn: x ddot
+latex: \ddot{x}
+
+## Newton's second law for a spring
+rpn: m x ddot * k x * neg =
+latex: m \ddot{x} = -k x
+
+## a dotted letter is an atom as the base of a power
+rpn: x dot 2 ^
+latex: \dot{x}^{2}
+
+## a dotted letter is an atom as a function's argument
+rpn: x dot sin
+latex: \sin \dot{x}
+
+## a dotted letter takes a subscript directly
+rpn: x dot i ssc
+latex: \dot{x}_{i}
+
+## an accent covers its whole argument, without brackets
+rpn: x y + dot
+latex: \dot{x + y}
+
+## an accent over a sum isn't an atom
+rpn: x y + dot 2 ^
+latex: (\dot{x + y})^{2}
+
+## a line can't break inside an accent
+rpn: x y + br dot
+layout: multline
+error: `br` can't break a line inside an accent
+
+# Primes
+
+## a glued prime is a derivative
+rpn: f'
+latex: f'
+
+## two primes are a second derivative
+rpn: x''
+latex: x''
+
+## a spring, with primes
+rpn: m x'' * k x * neg =
+latex: m x'' = -k x
+
+## a primed letter is an atom as a function's argument
+rpn: x' sin
+latex: \sin x'
+
+## a power after primes joins their superscript
+rpn: x' 2 ^
+latex: x'^{2}
+
+## primes go on the last letter of a product
+rpn: 2ab'
+latex: 2 a b'
+
+## a reserved value can take primes
+rpn: phi'
+latex: \phi'
+
+## a glued subscript and primes
+rpn: x1'
+latex: x'_{1}
+
+## a primed, subscripted letter with a power is grouped
+rpn: x1' 2 ^
+latex: {x'_{1}}^{2}
+
+## primes must end the token
+rpn: x'1
+error: `x'1`: primes go at the end of a token, after a letter (`x''`, `x1'`)
+
+## a lone prime isn't a token
+rpn: x '
+error: `'`: primes go at the end of a token, after a letter (`x''`, `x1'`)
+
+## an operator can't take a prime
+rpn: x sin'
+error: the operator `sin` can't take a prime
 
 # Sums and integrals
 
