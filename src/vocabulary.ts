@@ -50,7 +50,7 @@ const values: Record<string, string> = {
   // Other letters LaTeX has commands for.
   ell: "\\ell", hbar: "\\hbar", hslash: "\\hslash", imath: "\\imath",
   jmath: "\\jmath", aleph: "\\aleph", beth: "\\beth", gimel: "\\gimel",
-  daleth: "\\daleth", wp: "\\wp", Re: "\\Re", Im: "\\Im", eth: "\\eth",
+  daleth: "\\daleth", wp: "\\wp", eth: "\\eth",
   // Number sets.
   naturals: "\\mathbb{N}", integers: "\\mathbb{Z}", rationals: "\\mathbb{Q}",
   reals: "\\mathbb{R}", complex: "\\mathbb{C}",
@@ -59,13 +59,19 @@ const values: Record<string, string> = {
 };
 
 /**
- * Functions LaTeX has a command for (\sin, \log, \sup, …) that take one
- * argument. `gcd` and `hom` also have commands, but their arity is open.
+ * Functions that take one argument: those LaTeX has a command for (\sin,
+ * \log, \sup, …), and the real and imaginary parts `Re` and `Im`. `gcd` and
+ * `hom` also have commands, but their arity is open.
  */
 export const functions: ReadonlySet<string> = new Set([
   "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc",
   "deg", "det", "dim", "exp", "inf", "ker", "lg", "ln", "log", "Pr", "sec", "sin",
-  "sinh", "sup", "tan", "tanh",
+  "sinh", "sup", "tan", "tanh", "Re", "Im",
+]);
+
+/** Functions whose LaTeX isn't the command of the same name: \Re is the symbol ℜ, so `Re` is written upright. */
+export const functionLatex: ReadonlyMap<string, string> = new Map([
+  ["Re", "\\operatorname{Re}"], ["Im", "\\operatorname{Im}"],
 ]);
 
 /**
@@ -78,8 +84,10 @@ export const subscripted: ReadonlyMap<string, string> = new Map([
   ["argmax", "\\operatorname*{arg\\,max}"], ["argmin", "\\operatorname*{arg\\,min}"],
 ]);
 
-/** Accents over a value, taking one: `x dot` → ẋ (Newton's notation for derivatives). Each maps to its LaTeX. */
-export const accents: ReadonlyMap<string, string> = new Map([["dot", "\\dot"], ["ddot", "\\ddot"]]);
+/** Accents over a value, taking one: `x dot` → ẋ (Newton's notation for derivatives), `a tilde` → ã, `x hat` → x̂, `x bar` → x̄. Each maps to its LaTeX. */
+export const accents: ReadonlyMap<string, string> = new Map([
+  ["dot", "\\dot"], ["ddot", "\\ddot"], ["tilde", "\\tilde"], ["hat", "\\hat"], ["bar", "\\bar"],
+]);
 
 /**
  * Relations, all binding like `=`, and the LaTeX each writes. Common ones

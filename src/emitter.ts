@@ -24,7 +24,7 @@
 
 import { parse, type Equation, type Node } from "./parser.js";
 import type { Diagnostic, Span } from "./lexer.js";
-import { accents, arrows, equivalences, functions, relations, subscripted } from "./vocabulary.js";
+import { accents, arrows, equivalences, functionLatex, functions, relations, subscripted } from "./vocabulary.js";
 
 /**
  * How the surrounding math lays out equations, which decides what a `br`
@@ -214,7 +214,7 @@ function factor(node: Node, followed: boolean): string {
   return child(node, r < Rank.multiplicative && (followed || r !== Rank.prefix), followed);
 }
 
-/** The argument of a function or quantifier: bracketed unless it's an atom or a subscripted atom. */
+/** The argument of a function: bracketed unless it's an atom or a subscripted atom. */
 function argument(node: Node): string {
   return child(node, !isAtom(node) && !isSubscriptedAtom(node));
 }
@@ -287,7 +287,7 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
 
   if (infixLatex.has(operator)) return infix(node);
 
-  if (functions.has(operator)) return `\\${operator} ${argument(a!)}`;
+  if (functions.has(operator)) return `${functionLatex.get(operator) ?? `\\${operator}`} ${argument(a!)}`;
 
   const accent = accents.get(operator);
   if (accent !== undefined) return `${accent}{${boxed(a!, "an accent")}}`;
@@ -328,7 +328,9 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
       return `\\neg ${child(a!, rank(a!) <= Rank.relation)}`;
     case "exists":
     case "forall":
-      return `\\${operator} ${argument(a!)}`;
+      // What's quantified, with any condition, is written bare: ∀ε > 0,
+      // ∀x ∈ ℝ. Only something looser than a relation is bracketed: ∀(p ∧ q).
+      return `\\${operator} ${child(a!, rank(a!) < Rank.relation)}`;
     case "sum":
       return `\\sum_{${boxed(a!, "a sum's index")}} ${body(b!)}`;
     case "ser":
