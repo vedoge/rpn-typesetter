@@ -692,6 +692,10 @@ error: `sqrt` needs 1 value, but none is available
 rpn: a \overset/2
 error: `\overset` needs 2 values, but only 1 is available
 
+## a raw operator's arity is a number like any other, however large
+rpn: a \foo/99999999999999999999
+error: `\foo` needs 100000000000000000000 values, but only 1 is available
+
 ## a variadic operator with no mark
 rpn: a b mat
 error: `mat` needs a mark `[` before its entries

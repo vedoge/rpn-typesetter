@@ -42,22 +42,63 @@ function M.starts_with(s, prefix, at)
   return s:sub(at or 1, (at or 1) + #prefix - 1) == prefix
 end
 
-function M.trim(s)
-  return (s:gsub("^%s+", ""):gsub("%s+$", ""))
+--- The length in bytes of the whitespace character ending at `j`, or 0.
+local function space_before(s, j)
+  if j < 1 then return 0 end
+  if ascii_spaces[s:sub(j, j)] then return 1 end
+  if j >= 2 and unicode_spaces[s:sub(j - 1, j)] then return 2 end
+  if j >= 3 and unicode_spaces[s:sub(j - 2, j)] then return 3 end
+  return 0
 end
 
+--- Removes whitespace from the end, as JavaScript's trimEnd() does.
 function M.trim_end(s)
-  return (s:gsub("%s+$", ""))
+  local j = #s
+  while true do
+    local n = space_before(s, j)
+    if n == 0 then break end
+    j = j - n
+  end
+  return s:sub(1, j)
 end
 
---- How many JavaScript characters (UTF-16 units) the bytes from `from` to `to` hold.
+--- Removes whitespace from both ends, as JavaScript's trim() does.
+function M.trim(s)
+  return M.trim_end(s:sub(M.skip_space(s, 1, #s + 1)))
+end
+
+--- How many JavaScript characters (UTF-16 units) the bytes from `from` to
+--- `to` hold. A character outside the BMP is 2; a byte that isn't part of
+--- valid UTF-8 is 1, as Node reads it (as U+FFFD).
 function M.width(s, from, to)
-  local n = 0
-  for i = from, to do
+  local n, i = 0, from
+  while i <= to do
     local b = s:byte(i)
-    if b < 0x80 or b >= 0xC0 then n = n + (b >= 0xF0 and 2 or 1) end
+    local length = b >= 0xC2 and b <= 0xDF and 2 or b >= 0xE0 and b <= 0xEF and 3 or b >= 0xF0 and b <= 0xF4 and 4 or 1
+    if length > 1 and not s:sub(i + 1, i + length - 1):match("^[\128-\191]+$") then length = 1 end
+    if length > 1 and i + length - 1 > to then length = 1 end
+    n = n + (length == 4 and 2 or 1)
+    i = i + length
   end
   return n
+end
+
+--- A number as JavaScript prints it: 2, 100000000000000000000,
+--- 9223372036854776000, 1e+21, Infinity.
+function M.js_number(x)
+  x = x + 0.0
+  if x == math.huge then return "Infinity" end
+  local digits
+  for precision = 1, 17 do
+    digits = ("%." .. precision .. "g"):format(x)
+    if tonumber(digits) == x then break end
+  end
+  local mantissa, exponent = digits:match("^([%d.]+)e([+-]%d+)$")
+  if not mantissa then return digits end
+  exponent = tonumber(exponent)
+  if exponent >= 21 then return (mantissa .. "e+" .. exponent) end
+  local whole, fraction = mantissa:match("^(%d+)%.?(%d*)$")
+  return whole .. fraction .. ("0"):rep(exponent - #fraction)
 end
 
 --- The 1-based line and column of position `at`, for error messages.

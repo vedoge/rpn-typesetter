@@ -95,7 +95,10 @@ local function classify(chunk, span)
       return token("label", span, { name = name })
     end
     local command, arity = chunk:match("^(\\[A-Za-z]+)/(%d+)$")
-    if command then return token("rawOperator", span, { command = command, arity = tonumber(arity) }) end
+    if command then
+      -- As a float, like a JavaScript number, so a huge arity behaves the same.
+      return token("rawOperator", span, { command = command, arity = tonumber(arity) + 0.0 })
+    end
     return token("raw", span, { latex = chunk })
   end
 

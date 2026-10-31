@@ -138,7 +138,7 @@ local function bracket(node)
   -- Split into lines and the placeholders between them: line, break, line, …
   local parts, from = {}, 1
   while true do
-    local at = inner:find(break_mark, from, true)
+    local at = inner:find(break_mark .. "[ro]", from)
     if not at then break end
     parts[#parts + 1] = inner:sub(from, at - 1)
     parts[#parts + 1] = inner:sub(at, at + 1)

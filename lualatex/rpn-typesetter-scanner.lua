@@ -232,6 +232,7 @@ local function loads_package(document, pkg)
         for name in (list .. ","):gmatch("([^,]*),") do
           if names[text.trim(name)] then return true end
         end
+        i = p + #list + 2 -- carry on after the match, as a regular expression does
       end
     end
   end

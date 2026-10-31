@@ -149,3 +149,4 @@ Working log for the input syntax. **Decided** items are settled. **Proposed** it
 8. **Measured breaks in each implementation.** TypeScript measures on one run and breaks on the next (`.aux`); the Lua package can measure in the same run. Must both choose the same breaks, or only the same LaTeX for everything else?
 9. **The command's errors.** Under LuaLaTeX an invalid block becomes an error plus **??**, and the run carries on when told. Should the command do the same (write **??** and a LaTeX error into `paper.tex`, and let LaTeX run), or keep stopping before LaTeX runs?
 10. **License.** CTAN needs one before it accepts the package, and the repository has none yet. LaTeX packages usually use the LPPL; MIT is also common.
+11. **Raw operator arities.** `\cmd/N` takes any N, so `\foo/99999999999999999999` is accepted and fails only for lack of values. A LaTeX command takes at most 9 arguments; should a larger N be an error in the lexer?

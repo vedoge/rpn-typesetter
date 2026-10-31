@@ -113,6 +113,10 @@ output: $ \text{50\% off} $
 document: \begin{verbatim}$@ a +$\end{verbatim} \verb|$@ a +| \verb*+$+
 output: \begin{verbatim}$@ a +$\end{verbatim} \verb|$@ a +| \verb*+$+
 
+## only the recognised environments are math
+document: \newenvironment{constructor}{}{}\begin{constructor}@ a b +\end{constructor}
+output: \newenvironment{constructor}{}{}\begin{constructor}@ a b +\end{constructor}
+
 # Errors and warnings
 
 ## an error is reported at its line and column

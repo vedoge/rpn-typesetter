@@ -95,7 +95,7 @@ function M.parse_tokens(tokens, end_of_block)
       if top == nil or top.kind ~= "value" then
         local where = top == nil and "" or top.kind == "mark" and " after the last `[`" or " in this row"
         local have = k == 0 and "none is" or k == 1 and "only 1 is" or ("only %d are"):format(k)
-        fail(at, ("`%s` needs %d value%s, but %s available%s"):format(name, count, count == 1 and "" or "s", have, where))
+        fail(at, ("`%s` needs %s value%s, but %s available%s"):format(name, text.js_number(count), count == 1 and "" or "s", have, where))
       end
       table.insert(args, 1, top.node)
     end

@@ -175,9 +175,11 @@ function findRegions(document: string, onDocumentClass: (afterArgument: number) 
       // \verb|…| or \verb*|…|: everything up to the next copy of the delimiter.
       let d = afterWord;
       if (document[d] === "*") d++;
-      const delimiter = document[d];
-      const close = delimiter === undefined ? -1 : document.indexOf(delimiter, d + 1);
-      i = close === -1 ? document.length : close + 1;
+      // The delimiter is a whole character, so an emoji is two UTF-16 units.
+      const code = document.codePointAt(d);
+      const delimiter = code === undefined ? undefined : String.fromCodePoint(code);
+      const close = delimiter === undefined ? -1 : document.indexOf(delimiter, d + delimiter.length);
+      i = close === -1 ? document.length : close + delimiter!.length;
       continue;
     }
 
@@ -209,7 +211,7 @@ function findRegions(document: string, onDocumentClass: (afterArgument: number) 
           i = close === -1 ? document.length : close + end.length;
           continue;
         }
-        const layout = mathEnvironments[name];
+        const layout = Object.hasOwn(mathEnvironments, name) ? mathEnvironments[name] : undefined;
         if (layout !== undefined) {
           // Skip the environment's own arguments: aligned[t], alignat{2}.
           contentStart = skipOptional(document, contentStart);
