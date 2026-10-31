@@ -1,7 +1,22 @@
 #!/usr/bin/env node
+// Copyright 2026 vedoge
+//
+// This work may be distributed and/or modified under the conditions of the
+// LaTeX Project Public License, either version 1.3c of this license or (at
+// your option) any later version. The latest version of this license is in
+// https://www.latex-project.org/lppl.txt and version 1.3c or later is part
+// of all distributions of LaTeX version 2008 or later.
+//
+// This work has the LPPL maintenance status `maintained'.
+// The Current Maintainer of this work is vedoge (https://github.com/vedoge).
+//
+// This work consists of all the files in https://github.com/vedoge/rpn-typesetter.
+//
 // The command-line tool: `rpn-typesetter paper.rtex` writes `paper.tex`.
-// Invalid RPN stops it with exit code 1 and nothing written, so a
-// `latexmk` command that runs it first never reaches LaTeX.
+// Invalid RPN is reported, and each invalid block becomes a LaTeX error
+// followed by a bold ??, as in the LuaLaTeX package: when LaTeX reaches it,
+// it stops and waits, then typesets ?? in its place. The tool exits 1, so a
+// script notices, except under --latexmk, so latexmk goes on to run LaTeX.
 //
 // `rpn-typesetter --latexmk FILE` is for latexmk's pdfLaTeX command: it
 // converts FILE if it's a .rtex file and does nothing otherwise, so one
@@ -25,6 +40,57 @@ function guardLine(source: string): string {
 function format(file: string, document: string, severity: string, d: Diagnostic): string {
   const { line, column } = locate(document, d.start);
   return `${file}:${line}:${column}: ${severity}: ${d.message}`;
+}
+
+/**
+ * Escapes text for a LaTeX message (\typeout, \PackageError), so `\`, `{`
+ * and the like are printed, not run. A brace or `#` is made from a control
+ * symbol: `\string\{` is `\{`, and \@gobble drops the backslash. A
+ * backslash or `%` is LaTeX's \@backslashchar or \@percentchar. (\csname
+ * reaches these @ commands without the document making @ a letter.) A
+ * letter or space right after such a command is separated from it, since
+ * TeX would join a letter to the command's name and drop a space.
+ */
+export function latexMessage(text: string): string {
+  const named: Readonly<Record<string, string>> = { "\\": "@backslashchar", "%": "@percentchar" };
+  let out = "";
+  let afterCommand = false;
+  for (const c of text) {
+    const name = named[c];
+    if (name !== undefined) {
+      out += `\\csname ${name}\\endcsname`;
+      afterCommand = true;
+    } else if ("{}#".includes(c)) {
+      out += `\\csname @gobble\\expandafter\\endcsname\\string\\${c}`;
+      afterCommand = false;
+    } else if ("$&^_~".includes(c)) {
+      out += `\\string${c}`;
+      afterCommand = false;
+    } else if (afterCommand && c === " ") {
+      out += "\\space";
+    } else {
+      out += afterCommand && /[A-Za-z]/.test(c) ? ` ${c}` : c;
+      afterCommand = false;
+    }
+  }
+  return out;
+}
+
+/**
+ * The LaTeX an invalid block becomes: its errors written to LaTeX's log as
+ * `paper.rtex:12:8: error: …`, a LaTeX error (raised once, though align reads
+ * its contents twice), then a bold ??, like a missing reference.
+ */
+function invalidBlock(file: string, document: string, errors: readonly Diagnostic[], n: number): string {
+  const flag = `\\csname rpn-typesetter error ${n}\\endcsname`;
+  const lines = errors.map((e) => `\\typeout{${latexMessage(format(file, document, "error", e))}}`).join("");
+  const more = errors.length - 1;
+  const message = errors[0]!.message + (more > 0 ? ` (and ${more} more error${more === 1 ? "" : "s"})` : "");
+  const help = "This RPN is invalid, so ?? is typeset in its place. Fix it and run LaTeX again.";
+  return (
+    `\\ifcsname rpn-typesetter error ${n}\\endcsname\\else\\expandafter\\gdef${flag}{}` +
+    `${lines}\\PackageError{rpn-typesetter}{${latexMessage(message)}}{${help}}\\fi\\mbox{\\normalfont\\bfseries ??}`
+  );
 }
 
 /** The installed version, from package.json (next to dist/ when installed, next to src/ in a clone). */
@@ -62,13 +128,16 @@ export function main(args: readonly string[], log: (line: string) => void = cons
   const measurements = existsSync(aux) ? readMeasurements(readFileSync(aux, "utf8")) : new Map();
 
   const document = readFileSync(source, "utf8");
-  const { output, errors, warnings } = convert(document, { measurements });
+  let blocks = 0;
+  const { output, errors, warnings } = convert(document, {
+    measurements,
+    invalid: (blockErrors) => invalidBlock(source, document, blockErrors, ++blocks),
+  });
   for (const w of warnings) log(format(source, document, "warning", w));
   for (const e of errors) log(format(source, document, "error", e));
-  if (errors.length > 0) return 1;
 
   writeFileSync(target, guardLine(source) + output);
-  return 0;
+  return errors.length > 0 && !fromLatexmk ? 1 : 0;
 }
 
 /**

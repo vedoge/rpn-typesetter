@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { main } from "../src/cli.js";
 import { all, readCases, single } from "./cases.js";
 
 const hasLatex = spawnSync("pdflatex", ["--version"]).status === 0;
@@ -60,7 +61,9 @@ describe.skipIf(!hasLatex)("pdflatex accepts the expected output", () => {
   it("of every document case", () => {
     const body: string[] = [];
     const starts: { line: number; name: string }[] = [];
-    for (const c of readCases(`${casesDir}documents.cases`)) {
+    // measured.cases outputs carry the measuring macros, so compiling them
+    // checks pdfLaTeX accepts those too.
+    for (const c of ["documents.cases", "measured.cases"].flatMap((file) => readCases(`${casesDir}${file}`))) {
       const output = single(c, "output");
       if (output === undefined || all(c, "error").length > 0) continue;
       if (output.includes("\\documentclass")) {
@@ -73,4 +76,30 @@ describe.skipIf(!hasLatex)("pdflatex accepts the expected output", () => {
     const document = ["\\documentclass{article}", "\\usepackage{amsmath,amssymb}", "\\begin{document}", ...body, "\\end{document}", ""];
     compile("documents", document.join("\n"), starts);
   });
+
+  // The command turns an invalid block into a LaTeX error plus ??: LaTeX
+  // should report each error once, as file:line:column (the .rtex position)
+  // and as a LaTeX error.
+  for (const c of readCases(`${casesDir}documents.cases`)) {
+    const expected = all(c, "error");
+    if (expected.length === 0) continue;
+    it(`reports the errors in \`${c.name}\``, () => {
+      const dir = mkdtempSync(join(tmpdir(), "rpn-latex-"));
+      const document = single(c, "document")!;
+      writeFileSync(join(dir, "case.rtex"), document);
+      const logged: string[] = [];
+      expect(main(["--latexmk", join(dir, "case.rtex")], (line) => logged.push(line))).toBe(0);
+      if (!document.startsWith("\\documentclass")) {
+        const body = readFileSync(join(dir, "case.tex"), "utf8");
+        writeFileSync(join(dir, "case.tex"), `\\documentclass{article}\\usepackage{amsmath,amssymb}\\begin{document}\n${body}\\end{document}\n`);
+      }
+      // max_print_line stops the log wrapping long lines.
+      spawnSync("pdflatex", ["-interaction=nonstopmode", "case.tex"], { cwd: dir, env: { ...process.env, max_print_line: "10000" } });
+      const log = readFileSync(join(dir, "case.log"), "utf8").split("\n");
+      expect(log.filter((l) => l.startsWith(join(dir, "case.rtex")))).toEqual(logged);
+      expect(log.filter((l) => l.startsWith("!"))).toEqual(
+        expected.map((e) => `! Package rpn-typesetter Error: ${e.replace(/^\d+:\d+: /, "")}.`),
+      );
+    });
+  }
 });

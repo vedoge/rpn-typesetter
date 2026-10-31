@@ -1,6 +1,6 @@
 # Shared test cases
 
-Every implementation (the TypeScript tool now, the LuaLaTeX package later) must pass every case in this folder. A case that passes in one and fails in the other is a bug in one of them.
+Every implementation (the TypeScript tool in `src/` and the LuaLaTeX package in `lualatex/`) must pass every case in this folder. A case that passes in one and fails in the other is a bug in one of them.
 
 The cases describe what an author can observe: the LaTeX an RPN block becomes, the document a `.rtex` file becomes, and the exact error and warning messages. How an implementation gets there (its tokens, its trees) is its own business, so those tests stay with each implementation.
 
@@ -47,7 +47,16 @@ The errors, warnings and equations must match exactly, with none missing and non
 | Key | Meaning |
 |---|---|
 | `document` | The `.rtex` source. |
-| `aux` | The `.aux` file LaTeX wrote on the previous run, with the widths it measured. Without it, nothing has been measured yet. |
 | `output` | The converted document, without the guard line the command-line tool adds. |
 | `error` | `line:column: message`, for an expected error. With errors, `output` isn't checked. |
 | `warning` | `line:column: message`, for an expected warning. |
+
+## `measured.cases`: measured line breaks (TypeScript only)
+
+The same keys as `documents.cases`, plus:
+
+| Key | Meaning |
+|---|---|
+| `aux` | The `.aux` file LaTeX wrote on the previous run, with the widths it measured. Without it, nothing has been measured yet. |
+
+Only the TypeScript command runs this file for now: how each implementation measures and breaks is still open (open question 8 in `docs/design.md`).

@@ -1,3 +1,16 @@
+// Copyright 2026 vedoge
+//
+// This work may be distributed and/or modified under the conditions of the
+// LaTeX Project Public License, either version 1.3c of this license or (at
+// your option) any later version. The latest version of this license is in
+// https://www.latex-project.org/lppl.txt and version 1.3c or later is part
+// of all distributions of LaTeX version 2008 or later.
+//
+// This work has the LPPL maintenance status `maintained'.
+// The Current Maintainer of this work is vedoge (https://github.com/vedoge).
+//
+// This work consists of all the files in https://github.com/vedoge/rpn-typesetter.
+//
 // The scanner: the stage that works on a whole `.rtex` document. It's a
 // second, simpler lexer. It doesn't understand LaTeX; it only knows enough to
 // find math regions, and to skip the places where `$` or `\[` don't mean math
@@ -65,12 +78,17 @@ interface Region {
   readonly name: string;
 }
 
-/** Converts a whole `.rtex` document to LaTeX. */
 export interface ConvertOptions {
+  /**
+   * Given the errors of one invalid block, returns LaTeX to put in its place.
+   * Without it, an invalid block is left as it is.
+   */
+  readonly invalid?: (errors: readonly Diagnostic[]) => string;
   /** Widths LaTeX measured on the last run, read from the .aux file (see breaking.ts). */
   readonly measurements?: ReadonlyMap<string, Measurement>;
 }
 
+/** Converts a whole `.rtex` document to LaTeX. */
 export function convert(document: string, options: ConvertOptions = {}): ConvertResult {
   const measurements = options.measurements ?? new Map<string, Measurement>();
   const occurrences = new Map<string, number>(); // how often each equation's RPN has appeared
@@ -91,22 +109,10 @@ export function convert(document: string, options: ConvertOptions = {}): Convert
     const rpn = blankComments(document.slice(rpnStart, region.contentEnd));
     const shift = (d: Diagnostic): Diagnostic => ({ ...d, start: d.start + rpnStart, end: d.end + rpnStart });
 
+    const blockErrors: Diagnostic[] = [];
     const result = parse(rpn);
-    errors.push(...result.errors.map(shift));
+    blockErrors.push(...result.errors.map(shift));
     warnings.push(...result.warnings.map(shift));
-    if (result.errors.length > 0) continue;
-
-    const second = result.equations[1];
-    if (second && (region.layout === "single" || region.layout === "multline")) {
-      errors.push(
-        shift({
-          start: second.start,
-          end: second.end,
-          message: `${region.name} holds one equation; use an environment like align or gather for several`,
-        }),
-      );
-      continue;
-    }
 
     // Equations in a display that holds several lines are measured, and broken
     // once their widths are known, unless the author breaks them by hand.
@@ -140,14 +146,30 @@ export function convert(document: string, options: ConvertOptions = {}): Convert
       return measuringLatex(id, piecesLatex) + " " + emitEquation(eq, region.layout, { breaks });
     };
 
-    let latex: string;
-    try {
-      latex = result.equations.map(emit).join(" \\\\ ");
-    } catch (error) {
-      if (!(error instanceof EmitError)) throw error;
-      errors.push(shift(error.diagnostic));
-      continue;
+    let latex: string | undefined;
+    const second = result.equations[1];
+    if (result.errors.length > 0) {
+      // reported above
+    } else if (second && (region.layout === "single" || region.layout === "multline")) {
+      blockErrors.push(
+        shift({
+          start: second.start,
+          end: second.end,
+          message: `${region.name} holds one equation; use an environment like align or gather for several`,
+        }),
+      );
+    } else {
+      try {
+        latex = result.equations.map(emit).join(" \\\\ ");
+      } catch (error) {
+        if (!(error instanceof EmitError)) throw error;
+        blockErrors.push(shift(error.diagnostic));
+      }
     }
+
+    errors.push(...blockErrors);
+    if (blockErrors.length > 0 && options.invalid) latex = options.invalid(blockErrors);
+    if (latex === undefined) continue;
     pieces.push(document.slice(copiedTo, first), ` ${latex} `);
     copiedTo = region.contentEnd;
   }
@@ -232,9 +254,11 @@ function findRegions(document: string, onDocumentClass: (afterArgument: number) 
       // \verb|…| or \verb*|…|: everything up to the next copy of the delimiter.
       let d = afterWord;
       if (document[d] === "*") d++;
-      const delimiter = document[d];
-      const close = delimiter === undefined ? -1 : document.indexOf(delimiter, d + 1);
-      i = close === -1 ? document.length : close + 1;
+      // The delimiter is a whole character, so an emoji is two UTF-16 units.
+      const code = document.codePointAt(d);
+      const delimiter = code === undefined ? undefined : String.fromCodePoint(code);
+      const close = delimiter === undefined ? -1 : document.indexOf(delimiter, d + delimiter.length);
+      i = close === -1 ? document.length : close + delimiter!.length;
       continue;
     }
 
@@ -266,7 +290,7 @@ function findRegions(document: string, onDocumentClass: (afterArgument: number) 
           i = close === -1 ? document.length : close + end.length;
           continue;
         }
-        const layout = mathEnvironments[name];
+        const layout = Object.hasOwn(mathEnvironments, name) ? mathEnvironments[name] : undefined;
         if (layout !== undefined) {
           // Skip the environment's own arguments: aligned[t], alignat{2}.
           contentStart = skipOptional(document, contentStart);

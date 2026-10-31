@@ -1,0 +1,55 @@
+% Copyright 2026 vedoge
+%
+% This work may be distributed and/or modified under the conditions of the
+% LaTeX Project Public License, either version 1.3c of this license or (at
+% your option) any later version. The latest version of this license is in
+% https://www.latex-project.org/lppl.txt and version 1.3c or later is part
+% of all distributions of LaTeX version 2008 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% The Current Maintainer of this work is vedoge (https://github.com/vedoge).
+%
+% This work consists of all the files in https://github.com/vedoge/rpn-typesetter.
+%
+% rpn-typesetter: write LaTeX math in RPN, converted inside the LuaLaTeX run.
+% The conversion is the same as the rpn-typesetter command's; see
+% rpn-typesetter.lua for how it reaches TeX.
+\NeedsTeXFormat{LaTeX2e}[2022/11/01]
+\ProvidesPackage{rpn-typesetter}[2026/10/31 v0.1.0 RPN math for LuaLaTeX]
+
+% Options. unicode-math=false keeps LaTeX's traditional math fonts.
+\newif\ifrpntypesetter@unicodemath
+\rpntypesetter@unicodemathtrue
+\DeclareKeys{unicode-math .if = rpntypesetter@unicodemath}
+\ProcessKeyOptions
+
+% Under pdfLaTeX the rpn-typesetter command has already converted the RPN,
+% so the package does nothing, and one source file serves both.
+\ifdefined\directlua\else
+  \PackageInfo{rpn-typesetter}{Not running under LuaLaTeX, so the package
+    does nothing.\MessageBreak RPN must be converted by the rpn-typesetter
+    command first}
+  \expandafter\endinput
+\fi
+
+% The output needs \text, pmatrix and cases (amsmath), and \mathbb and the
+% other symbols (unicode-math, or amssymb without it). They load at the end
+% of the preamble, each only if nothing has loaded it yet, so the author's
+% own options always win; amsmath comes first, as unicode-math needs.
+\AddToHook{begindocument/before}{%
+  \@ifpackageloaded{amsmath}{}{\RequirePackage{amsmath}}%
+  \ifrpntypesetter@unicodemath
+    \@ifpackageloaded{unicode-math}{}{\RequirePackage{unicode-math}}%
+  \else
+    \@ifpackageloaded{unicode-math}{}{\@ifpackageloaded{amssymb}{}{\RequirePackage{amssymb}}}%
+  \fi}
+
+% An invalid RPN block becomes \RPNTypesetterInvalid{n}: an error, then ??
+% in bold, like a missing reference.
+\protected\def\RPNTypesetterInvalid#1{%
+  \directlua{require("rpn-typesetter").invalid(#1)}%
+  \mbox{\normalfont\bfseries ??}}
+
+\directlua{require("rpn-typesetter").start()}
+\AtBeginDocument{\directlua{require("rpn-typesetter").begin_document()}}
+\endinput
