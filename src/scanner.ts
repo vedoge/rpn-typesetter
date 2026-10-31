@@ -50,6 +50,8 @@ export interface ConvertResult {
   /** Offsets are into the original document. */
   readonly errors: Diagnostic[];
   readonly warnings: Diagnostic[];
+  /** The files the document `\input`s or `\include`s, as written: `chapter`, `parts/two.tex`. */
+  readonly inputs: string[];
 }
 
 /** A math region: where its contents start and end, and how it lays out equations. */
@@ -77,7 +79,11 @@ export function convert(document: string, options: ConvertOptions = {}): Convert
   let copiedTo = 0; // everything before this offset is in `pieces`
   let packagesAt: number | undefined; // just after \documentclass{…}
 
-  const regions = findRegions(document, (at) => (packagesAt ??= at));
+  const inputs: string[] = [];
+  const regions = findRegions(document, {
+    documentClass: (at) => (packagesAt ??= at),
+    input: (name) => inputs.push(name),
+  });
 
   for (const region of regions) {
     const first = skipSpace(document, region.contentStart, region.contentEnd);
@@ -130,7 +136,7 @@ export function convert(document: string, options: ConvertOptions = {}): Convert
       output = `${output.slice(0, packagesAt)}\\usepackage{${missing.join(",")}}${output.slice(packagesAt)}`;
     }
   }
-  return { output, errors, warnings };
+  return { output, errors, warnings, inputs };
 }
 
 /**
@@ -147,8 +153,14 @@ function loadsPackage(document: string, pkg: string): boolean {
   return false;
 }
 
+/** What findRegions reports besides regions: where \documentclass{…} ends, and each \input or \include. */
+interface Found {
+  documentClass(afterArgument: number): void;
+  input(name: string): void;
+}
+
 /** Finds every math region, plain or RPN, in document order. */
-function findRegions(document: string, onDocumentClass: (afterArgument: number) => void): Region[] {
+function findRegions(document: string, found: Found): Region[] {
   const regions: Region[] = [];
   let i = 0;
 
@@ -210,9 +222,14 @@ function findRegions(document: string, onDocumentClass: (afterArgument: number) 
 
     if (word === "documentclass") {
       const end = skipArgument(document, skipOptional(document, afterWord));
-      onDocumentClass(end);
+      found.documentClass(end);
       i = end;
       continue;
+    }
+
+    if (word === "input" || word === "include") {
+      const file = /^\s*\{([^{}]*)\}/.exec(document.slice(afterWord));
+      if (file) found.input(file[1]!.trim());
     }
 
     if (word === "ensuremath") {

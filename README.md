@@ -25,11 +25,15 @@ rpn-typesetter --version
 
 To update, run the same `npm install -g …` command again; it always fetches the latest release. To remove it, `npm uninstall -g rpn-typesetter`.
 
-Then tell `latexmk` about it, once, by adding this line to `~/.latexmkrc` (create the file if it doesn't exist):
+Then tell `latexmk` about it, once, by adding these lines to `~/.latexmkrc` (create the file if it doesn't exist):
 
 ```perl
 $pdflatex = 'rpn-typesetter --latexmk %S && pdflatex %O %R.tex';
+add_cus_dep('rtex', 'tex', 0, 'rtex2tex');
+sub rtex2tex { return system('rpn-typesetter', '--latexmk', "$_[0].rtex"); }
 ```
+
+The first line converts your document before each pdfLaTeX pass. The other two tell `latexmk` that a `.tex` file is made from the `.rtex` file of the same name, so it rebuilds when you edit a chapter your document `\input`s. (If you set this up before chapters were supported, add those two lines.)
 
 With `--latexmk`, the tool converts `.rtex` files and leaves ordinary `.tex` files alone, so your other documents build exactly as before. If you don't already build PDFs by default, add `$pdf_mode = 1;` too, or run `latexmk -pdf`. To set it up for one project only, copy [`examples/latexmkrc`](examples/latexmkrc) next to your document as `.latexmkrc` instead.
 
@@ -38,7 +42,7 @@ With `--latexmk`, the tool converts `.rtex` files and leaves ordinary `.tex` fil
 1. Write your document as `paper.rtex`: ordinary LaTeX, with RPN math wherever you want it.
 2. Run `latexmk paper.rtex`, or `latexmk -pvc paper.rtex` to rebuild on every save.
 
-Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`. Don't edit `paper.tex`: it's regenerated every time, and the tool refuses to overwrite a `paper.tex` it didn't write. Errors point at your `.rtex` file:
+Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`. A document split into files works too: `\input{chapter}` or `\include{chapter}` makes the tool convert `chapter.rtex` to `chapter.tex` as well, which LaTeX then reads. Write the name without `.rtex`, as LaTeX expects. Don't edit the generated `.tex` files: they're regenerated every time, and the tool refuses to overwrite a `.tex` file it didn't write. Errors point at your `.rtex` file:
 
 ```
 paper.rtex:12:8: error: `+` needs 2 values, but only 1 is available

@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -70,6 +70,45 @@ describe("command-line tool", () => {
     writeFileSync(source, "$@ 2 x$\n");
     expect(run(source)).toBe(0);
     expect(logged[0]).toMatch(/paper\.rtex:1:4: warning: 2 values were left on the stack/);
+  });
+
+  it("converts the .rtex files the document \\inputs or \\includes, and theirs", () => {
+    const source = join(dir, "paper.rtex");
+    writeFileSync(source, "\\input{one}\n\\include{parts/two.tex}\n% \\input{commented}\n\\input{plain}\n");
+    writeFileSync(join(dir, "one.rtex"), "$@ a b +$ \\input{three}\n");
+    mkdirSync(join(dir, "parts"));
+    writeFileSync(join(dir, "parts", "two.rtex"), "$@ c d +$\n");
+    writeFileSync(join(dir, "three.rtex"), "$@ e f +$ \\input{paper}\n"); // a cycle back to the start
+    writeFileSync(join(dir, "commented.rtex"), "$@ g$\n");
+    writeFileSync(join(dir, "plain.tex"), "untouched\n");
+    expect(run(source)).toBe(0);
+    expect(readFileSync(join(dir, "one.tex"), "utf8")).toContain("$ a + b $");
+    expect(readFileSync(join(dir, "parts", "two.tex"), "utf8")).toContain("$ c + d $");
+    expect(readFileSync(join(dir, "three.tex"), "utf8")).toContain("$ e + f $");
+    expect(existsSync(join(dir, "commented.tex"))).toBe(false);
+    expect(readFileSync(join(dir, "plain.tex"), "utf8")).toBe("untouched\n");
+  });
+
+  it("reports errors in an included file under its own name, numbering blocks across files", () => {
+    const source = join(dir, "paper.rtex");
+    writeFileSync(source, "$@ a +$ \\input{chapter}\n");
+    writeFileSync(join(dir, "chapter.rtex"), "Text.\n$@ b +$\n");
+    expect(run(source)).toBe(1);
+    expect(logged).toEqual([
+      `${source}:1:6: error: \`+\` needs 2 values, but only 1 is available`,
+      `${join(dir, "chapter.rtex")}:2:6: error: \`+\` needs 2 values, but only 1 is available`,
+    ]);
+    expect(readFileSync(join(dir, "paper.tex"), "utf8")).toContain("rpn-typesetter error 1\\endcsname");
+    expect(readFileSync(join(dir, "chapter.tex"), "utf8")).toContain("rpn-typesetter error 2\\endcsname");
+  });
+
+  it("won't overwrite a hand-written .tex for an included file", () => {
+    const source = join(dir, "paper.rtex");
+    writeFileSync(source, "\\input{chapter}\n");
+    writeFileSync(join(dir, "chapter.rtex"), "$@ a$\n");
+    writeFileSync(join(dir, "chapter.tex"), "my own work\n");
+    expect(run(source)).toBe(2);
+    expect(readFileSync(join(dir, "chapter.tex"), "utf8")).toBe("my own work\n");
   });
 
   it("knows its version", () => {
