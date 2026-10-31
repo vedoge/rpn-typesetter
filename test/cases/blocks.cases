@@ -260,6 +260,18 @@ latex: a, b = c, d
 rpn: a b , complex in forall a b + b a + = ,
 latex: \forall a, b \in \mathbb{C}, a + b = b + a
 
+## a quantifier over a list writes it bare
+rpn: a b , forall a b + b a + = ,
+latex: \forall a, b, a + b = b + a
+
+## exists over a list
+rpn: x y , exists x y < ,
+latex: \exists x, y, x < y
+
+## a quantifier over a list holding a relation keeps its brackets
+rpn: a b 0 > , forall
+latex: \forall (a, b > 0)
+
 ## a list holding a relation keeps its brackets beside a relation
 rpn: a b c < , d =
 latex: (a, b < c) = d

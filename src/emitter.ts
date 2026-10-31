@@ -347,8 +347,9 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
     case "exists":
     case "forall":
       // What's quantified, with any condition, is written bare: ∀ε > 0,
-      // ∀x ∈ ℝ. Only something looser than a relation is bracketed: ∀(p ∧ q).
-      return `\\${operator} ${child(a!, rank(a!) < Rank.relation)}`;
+      // ∀x ∈ ℝ, and so is a list, ∀a, b. Only something else looser than a
+      // relation is bracketed: ∀(p ∧ q).
+      return `\\${operator} ${child(a!, rank(a!) < Rank.relation && !isBareList(a!))}`;
     case "sum":
       return `\\sum_{${boxed(a!, "a sum's index")}} ${body(b!)}`;
     case "ser":

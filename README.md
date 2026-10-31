@@ -137,7 +137,7 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 | `p q and r or s =>` | p ∧ q ∨ r ⟹ s (also `<=>`, `not`, and the short ⇒ ⇐ ⇔ as `Rightarrow`, `Leftarrow`, `Leftrightarrow`) |
 | `x exists` · `epsilon 0 > forall` | ∃x · ∀ε > 0 |
 | `x reals in forall x 2 ^ 0 >= ,` · `a b , c ,` | ∀x ∈ ℝ, x² ≥ 0 · a, b, c (`,` joins a quantifier to its body, or makes a list) |
-| `a b , complex in` · `[ a b tuple reals 2 ^ in` | a, b ∈ ℂ · (a, b) ∈ ℝ² (a list beside a relation is bare; a tuple has brackets) |
+| `a b , complex in` · `a b , forall` · `[ a b tuple reals 2 ^ in` | a, b ∈ ℂ · ∀a, b · (a, b) ∈ ℝ² (a list beside a relation or under a quantifier is bare; a tuple has brackets) |
 | `x 0 -> x sin x / lim` | lim as x → 0 of sin x / x (also `liminf`, `limsup`) |
 | `x S in f max` · `A sup` | max over x ∈ S of f (also `min`, `argmax`, `argmin`) · sup A (also `inf`) |
 | `n a n _ sum` | ∑ₙ aₙ |

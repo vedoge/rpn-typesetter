@@ -321,8 +321,9 @@ local function emit_apply(node, followed)
     return "\\neg " .. child(a, rank(a) <= Rank.relation)
   elseif operator == "exists" or operator == "forall" then
     -- What's quantified, with any condition, is written bare: ∀ε > 0,
-    -- ∀x ∈ ℝ. Only something looser than a relation is bracketed: ∀(p ∧ q).
-    return "\\" .. operator .. " " .. child(a, rank(a) < Rank.relation)
+    -- ∀x ∈ ℝ, and so is a list, ∀a, b. Only something else looser than a
+    -- relation is bracketed: ∀(p ∧ q).
+    return "\\" .. operator .. " " .. child(a, rank(a) < Rank.relation and not is_bare_list(a))
   elseif operator == "sum" then
     return "\\sum_{" .. boxed(a, "a sum's index") .. "} " .. body(b)
   elseif operator == "ser" then
