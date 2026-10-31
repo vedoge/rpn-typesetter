@@ -67,6 +67,7 @@ let alignAt: Node | undefined;
  * docs/design.md).
  */
 const Rank = {
+  comma: 0, // , joins whole statements: a quantifier and its body, a list
   iff: 1, // <=> iff Leftrightarrow
   implies: 2, // => implies impliedby Rightarrow Leftarrow
   or: 3,
@@ -80,10 +81,10 @@ const Rank = {
 } as const;
 
 /** Operators where (a ∘ b) ∘ c = a ∘ (b ∘ c), so a right child of equal rank needs no brackets. */
-const associative: ReadonlySet<string> = new Set(["+", "*", "and", "or"]);
+const associative: ReadonlySet<string> = new Set(["+", "*", ",", "and", "or"]);
 
 const infixLatex: ReadonlyMap<string, string> = new Map([
-  ["+", "+"], ["-", "-"], ["and", "\\wedge"], ["or", "\\vee"], ...relations, ...arrows,
+  ["+", "+"], ["-", "-"], [",", ","], ["and", "\\wedge"], ["or", "\\vee"], ...relations, ...arrows,
 ]);
 
 /** Operators an aligned layout lines up at, and that start a line with `&` after a break. */
@@ -100,6 +101,7 @@ function rank(node: Node): number {
       return Rank.multiplicative;
     case "apply": {
       const op = node.operator;
+      if (op === ",") return Rank.comma;
       if (equivalences.has(op)) return Rank.iff;
       if (arrows.has(op)) return Rank.implies;
       if (op === "or") return Rank.or;
@@ -238,6 +240,8 @@ function infix(node: Node & { kind: "apply" }): string {
   const lineBreak = isBroken(node) && !breaksOff ? breakBefore(isAligning(node.operator)) : "";
   const cut = pieceCuts?.has(node) ? pieceMark : "";
   const align = node === alignAt ? "&" : "";
+  // A comma stays at the end of its line: a break, or a cut for measuring, goes after it.
+  if (node.operator === ",") return `${left}, ${lineBreak}${cut}${right}`;
   return `${left} ${lineBreak}${cut}${align}${infixLatex.get(node.operator)} ${right}`;
 }
 

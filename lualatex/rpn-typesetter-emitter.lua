@@ -61,6 +61,7 @@ local align_at = nil
 --- when it binds more loosely than its parent (the bracket rule in
 --- docs/design.md).
 local Rank = {
+  comma = 0, -- , joins whole statements: a quantifier and its body, a list
   iff = 1, -- <=> iff Leftrightarrow
   implies = 2, -- => implies impliedby Rightarrow Leftarrow
   ["or"] = 3,
@@ -74,9 +75,9 @@ local Rank = {
 }
 
 --- Operators where (a ∘ b) ∘ c = a ∘ (b ∘ c), so a right child of equal rank needs no brackets.
-local associative = { ["+"] = true, ["*"] = true, ["and"] = true, ["or"] = true }
+local associative = { ["+"] = true, ["*"] = true, [","] = true, ["and"] = true, ["or"] = true }
 
-local infix_latex = { ["+"] = "+", ["-"] = "-", ["and"] = "\\wedge", ["or"] = "\\vee" }
+local infix_latex = { ["+"] = "+", ["-"] = "-", [","] = ",", ["and"] = "\\wedge", ["or"] = "\\vee" }
 for spelling, latex in pairs(relations) do infix_latex[spelling] = latex end
 for spelling, latex in pairs(arrows) do infix_latex[spelling] = latex end
 
@@ -92,6 +93,7 @@ local function rank(node)
   if kind == "product" or kind == "juxtapose" then return Rank.multiplicative end
   if kind ~= "apply" then return Rank.atom end -- numbers, letters, raw LaTeX, text, matrices, raw operators
   local op = node.operator
+  if op == "," then return Rank.comma end
   if vocab.equivalences[op] then return Rank.iff end
   if arrows[op] then return Rank.implies end
   if op == "or" then return Rank["or"] end
@@ -243,6 +245,8 @@ local function infix(node)
   local right = child(b, rank(b) < r or (rank(b) == r and not associative[operator]) or neg_on_right)
   local line_break = node.breakBefore and not breaks_off and break_before(is_aligning(operator)) or ""
   local align = node == align_at and "&" or ""
+  -- A comma stays at the end of its line: a break goes after it.
+  if operator == "," then return left .. ", " .. line_break .. right end
   return left .. " " .. line_break .. align .. infix_latex[operator] .. " " .. right
 end
 
