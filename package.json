@@ -1,6 +1,6 @@
 {
   "name": "rpn-typesetter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "LaTeX preprocessor: RPN math in, plain LaTeX out",
   "license": "LPPL-1.3c",
