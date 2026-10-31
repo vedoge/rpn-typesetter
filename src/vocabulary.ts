@@ -116,9 +116,9 @@ export const arrows: ReadonlyMap<string, string> = new Map([
 /** The arrows that bind most loosely of all. */
 export const equivalences: ReadonlySet<string> = new Set(["<=>", "iff", "Leftrightarrow"]);
 
-/** Symbols the lexer reads: arithmetic, `_` (subscript), factorial, marks, row separators, and the ASCII relations and arrows. */
+/** Symbols the lexer reads: arithmetic, `_` (subscript), factorial, marks, row separators, the comma, and the ASCII relations and arrows. */
 export const symbols: ReadonlySet<string> = new Set([
-  "+", "-", "*", "/", "^", "_", "!", "[", ";",
+  "+", "-", "*", "/", "^", "_", "!", "[", ";", ",",
   ...[...relations.keys(), ...arrows.keys()].filter((name) => !/^[A-Za-z]/.test(name)),
 ]);
 

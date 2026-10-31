@@ -52,7 +52,7 @@ local function symbol_arity(symbol) return symbol == "!" and 1 or 2 end
 local function symbol_operator(symbol) return symbol == "_" and "ssc" or symbol end
 
 --- Operators written between their operands, the only ones `br` can follow.
-local infix = { ["+"] = true, ["-"] = true, ["*"] = true, ["and"] = true, ["or"] = true }
+local infix = { ["+"] = true, ["-"] = true, ["*"] = true, [","] = true, ["and"] = true, ["or"] = true }
 for spelling in pairs(vocab.relations) do infix[spelling] = true end
 for spelling in pairs(vocab.arrows) do infix[spelling] = true end
 

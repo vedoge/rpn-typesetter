@@ -1,12 +1,12 @@
 # rpn-typesetter
 
-Write LaTeX math in RPN (postfix notation) and never type a grouping bracket again. The tool turns RPN math in a `.rtex` file into ordinary LaTeX, adding brackets only where the maths needs them, and pdfLaTeX compiles the result as usual.
+Write LaTeX math in RPN (postfix notation) and never type a grouping bracket again. RPN math in your document becomes ordinary LaTeX, with brackets added only where the maths needs them:
 
 ```latex
 The roots are \[@ x b neg b 2 ^ 4ac - sqrt + 2a / = \]
 ```
 
-becomes
+typesets as if you had written
 
 ```latex
 The roots are \[ x = \frac{-b + \sqrt{b^{2} - 4 a c}}{2 a} \]
@@ -14,7 +14,59 @@ The roots are \[ x = \frac{-b + \sqrt{b^{2} - 4 a c}}{2 a} \]
 
 It's experimental: the language is still being designed (see [`docs/design.md`](docs/design.md)), so spellings may change.
 
-## Install
+## Two ways to use it
+
+The same language works in two ways, and both turn the same RPN into the same LaTeX:
+
+| | LuaLaTeX package | Command, for pdfLaTeX |
+|---|---|---|
+| You write | `paper.tex`, with `\usepackage{rpn-typesetter}` | `paper.rtex` |
+| You build with | `latexmk -lualatex paper.tex` | `latexmk paper.rtex` |
+| Converts | inside the LaTeX run | before each pdfLaTeX run, writing `paper.tex` |
+| Needs | LuaLaTeX (in TeX Live, MacTeX, MiKTeX, Overleaf) | Node.js 22+ and `latexmk` |
+| Breaks long equations by itself | not yet | yes |
+
+## With LuaLaTeX
+
+### Install
+
+The package is headed for CTAN, after which TeX Live and MiKTeX will install it like any other package. Until then, copy its files into your personal TeX folder:
+
+```sh
+dir="$(kpsewhich -var-value TEXMFHOME)/tex/lualatex/rpn-typesetter"
+mkdir -p "$dir" && cd "$dir"
+for f in rpn-typesetter.sty rpn-typesetter.lua rpn-typesetter-text.lua rpn-typesetter-vocabulary.lua rpn-typesetter-lexer.lua rpn-typesetter-parser.lua rpn-typesetter-emitter.lua rpn-typesetter-scanner.lua; do curl -fsSLO "https://raw.githubusercontent.com/vedoge/rpn-typesetter/main/lualatex/$f"; done
+kpsewhich rpn-typesetter.sty    # prints the path if TeX finds it
+```
+
+To update, run the same commands again. On Overleaf, upload those eight files next to your document instead. On MiKTeX, register the folder first (MiKTeX Console → Settings → Directories).
+
+### Use
+
+Load the package in an ordinary `.tex` document, and build with LuaLaTeX:
+
+```latex
+\documentclass{article}
+\usepackage{rpn-typesetter}
+\begin{document}
+The roots are \[@ x b neg b 2 ^ 4ac - sqrt + 2a / = \]
+\end{document}
+```
+
+```sh
+latexmk -lualatex paper.tex
+```
+
+- RPN works anywhere after the `\usepackage` line, in your document and in the `.tex` files it `\input`s or `\include`s.
+- Line numbers in LaTeX's own messages still match your file.
+- The package loads `amsmath` and `unicode-math` unless your document already does. `\usepackage[unicode-math=false]{rpn-typesetter}` loads `amssymb` instead, keeping LaTeX's traditional math fonts.
+- Under pdfLaTeX the package does nothing, so a document that loads it can still go through the command.
+
+[`examples/lualatex/demo.tex`](examples/lualatex/demo.tex) is a small document to start from, and [`lualatex/rpn-typesetter-doc.tex`](lualatex/rpn-typesetter-doc.tex) is the package's documentation.
+
+## With pdfLaTeX: the command
+
+### Install
 
 You need Node.js 22 or later and a TeX distribution with `latexmk` (MacTeX and TeX Live both have it).
 
@@ -37,51 +89,29 @@ The first line converts your document before each pdfLaTeX pass. The other two t
 
 With `--latexmk`, the tool converts `.rtex` files and leaves ordinary `.tex` files alone, so your other documents build exactly as before. If you don't already build PDFs by default, add `$pdf_mode = 1;` too, or run `latexmk -pdf`. To set it up for one project only, copy [`examples/latexmkrc`](examples/latexmkrc) next to your document as `.latexmkrc` instead.
 
-## Use
+### Use
 
 1. Write your document as `paper.rtex`: ordinary LaTeX, with RPN math wherever you want it.
 2. Run `latexmk paper.rtex`, or `latexmk -pvc paper.rtex` to rebuild on every save.
 
-Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`. A document split into files works too: `\input{chapter}` or `\include{chapter}` makes the tool convert `chapter.rtex` to `chapter.tex` as well, which LaTeX then reads. Write the name without `.rtex`, as LaTeX expects. Don't edit the generated `.tex` files: they're regenerated every time, and the tool refuses to overwrite a `.tex` file it didn't write. Errors point at your `.rtex` file:
+Each pdfLaTeX pass first runs `rpn-typesetter`, which writes `paper.tex`.
 
-```
-paper.rtex:12:8: error: `+` needs 2 values, but only 1 is available
-```
-
-Invalid RPN is also a LaTeX error where LaTeX reaches it. As with any LaTeX error, LaTeX stops and waits; press Return to carry on, and the block is typeset as **??**, like a missing reference. You can also run `rpn-typesetter paper.rtex` on its own; it exits 1 if any RPN is invalid (it still writes `paper.tex`).
+- **Split documents:** `\input{chapter}` or `\include{chapter}` makes the tool convert `chapter.rtex` to `chapter.tex` as well, which LaTeX then reads. Write the name without `.rtex`, as LaTeX expects.
+- **Generated files:** don't edit them. They're regenerated every time, and the tool refuses to overwrite a `.tex` file it didn't write.
+- **Running it alone:** `rpn-typesetter paper.rtex` works on its own too. It exits 1 if any RPN is invalid, though it still writes `paper.tex`.
 
 [`examples/demo.rtex`](examples/demo.rtex) is a small document to start from.
 
-## With LuaLaTeX instead
+## Mistakes
 
-There's also a LuaLaTeX package, which converts the RPN inside the LaTeX run, so there's no command to install and no `.tex` file to generate. It's newer and experimental: it converts exactly what the command converts, but how it's set up may still change (see [`docs/design.md`](docs/design.md)).
-
-It's headed for CTAN, after which TeX Live and MiKTeX will install it like any other package. Until then, copy the `.sty` and `.lua` files in [`lualatex/`](lualatex) into a folder TeX searches, such as `~/texmf/tex/lualatex/rpn-typesetter/` (`kpsewhich -var-value TEXMFHOME` prints where `~/texmf` is on your system). On Overleaf, upload them next to your document instead.
-
-Then load it in an ordinary `.tex` document, and build with LuaLaTeX:
-
-```latex
-\documentclass{article}
-\usepackage{rpn-typesetter}
-\begin{document}
-The roots are \[@ x b neg b 2 ^ 4ac - sqrt + 2a / = \]
-\end{document}
-```
-
-```sh
-latexmk -lualatex paper.tex
-```
-
-RPN works anywhere after the `\usepackage` line, in your document and in the `.tex` files it `\input`s or `\include`s. Invalid RPN is reported with the same message as the command, as a LaTeX error where TeX reaches it:
+Both report invalid RPN the same way: first the line and column in your source file (`paper.tex` with the package, `paper.rtex` with the command), then a LaTeX error where LaTeX reaches the block:
 
 ```
 paper.tex:12:8: error: `+` needs 2 values, but only 1 is available
 ! Package rpn-typesetter Error: `+` needs 2 values, but only 1 is available.
 ```
 
-As with any LaTeX error, TeX stops and waits; press Return to carry on, and the block is typeset as **??**, like a missing reference. Line numbers in LaTeX's own messages still match your file.
-
-The package loads `amsmath` and `unicode-math` unless your document already does; `\usepackage[unicode-math=false]{rpn-typesetter}` loads `amssymb` instead, keeping LaTeX's traditional math fonts. Under pdfLaTeX the package does nothing, so a document that loads it can still go through the `rpn-typesetter` command. [`examples/lualatex/demo.tex`](examples/lualatex/demo.tex) is the demo set up this way, and `lualatex/rpn-typesetter-doc.tex` is the package's documentation.
+As with any LaTeX error, LaTeX stops and waits; press Return to carry on, and the block is typeset as **??**, like a missing reference. Values left over at the end, as in `2 x 2 ^`, are set side by side, with a warning, since an operator may be missing.
 
 ## Marking RPN math
 
@@ -106,6 +136,7 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 | `x reals in` · `a b approx` | x ∈ ℝ · a ≈ b (relations by name) |
 | `p q and r or s =>` | p ∧ q ∨ r ⟹ s (also `<=>`, `not`, and the short ⇒ ⇐ ⇔ as `Rightarrow`, `Leftarrow`, `Leftrightarrow`) |
 | `x exists` · `epsilon 0 > forall` | ∃x · ∀ε > 0 |
+| `x reals in forall x 2 ^ 0 >= ,` · `a b , c ,` | ∀x ∈ ℝ, x² ≥ 0 · a, b, c (`,` joins a quantifier to its body, or makes a list) |
 | `x 0 -> x sin x / lim` | lim as x → 0 of sin x / x (also `liminf`, `limsup`) |
 | `x S in f max` · `A sup` | max over x ∈ S of f (also `min`, `argmax`, `argmin`) · sup A (also `inf`) |
 | `n a n _ sum` | ∑ₙ aₙ |
@@ -118,7 +149,7 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 In a display environment:
 
 - `;` separates equations. In `align` they line up at their relations.
-- With the command, long equations in `multline`, `align` and `gather` are broken automatically. LaTeX measures them on one run, and the next run (which `latexmk` does for you) breaks them where they stop fitting. The LuaLaTeX package doesn't break automatically yet.
+- With the command, long equations in `multline`, `align` and `gather` are broken automatically. LaTeX measures them on one run, and the next run (which `latexmk` does for you) breaks them where they stop fitting. The LuaLaTeX package doesn't break automatically yet, so use `br` there.
 - `br` after an operator breaks the line before it by hand (`a b + c + br` puts `+ c` on a new line). An equation with a `br` isn't broken automatically.
 - `\label{…}` and `\notag` go inside the RPN, with the equation they belong to.
 

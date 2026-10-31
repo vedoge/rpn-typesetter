@@ -109,8 +109,8 @@ M.equivalences = { ["<=>"] = true, iff = true, Leftrightarrow = true }
 
 local function is_name(spelling) return spelling:find("^[A-Za-z]") ~= nil end
 
---- Symbols the lexer reads: arithmetic, `_` (subscript), factorial, marks, row separators, and the ASCII relations and arrows.
-M.symbols = set { "+", "-", "*", "/", "^", "_", "!", "[", ";" }
+--- Symbols the lexer reads: arithmetic, `_` (subscript), factorial, marks, row separators, the comma, and the ASCII relations and arrows.
+M.symbols = set { "+", "-", "*", "/", "^", "_", "!", "[", ";", "," }
 for _, table in ipairs { M.relations, M.arrows } do
   for spelling in pairs(table) do
     if not is_name(spelling) then M.symbols[spelling] = true end

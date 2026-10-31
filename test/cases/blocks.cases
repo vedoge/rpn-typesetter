@@ -232,6 +232,18 @@ latex: \exists x = 0
 rpn: p q and forall
 latex: \forall (p \wedge q)
 
+## a comma joins a quantifier to its body
+rpn: x reals in forall x 2 ^ 0 >= ,
+latex: \forall x \in \mathbb{R}, x^{2} \geq 0
+
+## quantifiers in a row
+rpn: epsilon 0 > forall delta 0 > exists , x a - delta < y b - epsilon < => ,
+latex: \forall \epsilon > 0, \exists \delta > 0, x - a < \delta \implies y - b < \epsilon
+
+## a comma makes a list
+rpn: x 1 = 2 , 3 ,
+latex: x = 1, 2, 3
+
 ## the real part is an upright function
 rpn: z Re
 latex: \operatorname{Re} z
@@ -518,6 +530,10 @@ latex: {x'_{1}}^{2}
 rpn: x'1
 error: `x'1`: primes go at the end of a token, after a letter (`x''`, `x1'`)
 
+## a comma needs spaces
+rpn: a, b
+error: `a,` needs spaces: tokens are separated by whitespace
+
 ## a lone prime isn't a token
 rpn: x '
 error: `'`: primes go at the end of a token, after a letter (`x''`, `x1'`)
@@ -783,6 +799,11 @@ error: `br` can't break a line inside a fraction
 layout: multline
 rpn: a b + br sqrt
 error: `br` can't break a line inside a square root
+
+## br after a comma breaks before what follows it
+rpn: x reals in forall x 2 ^ 0 >= , br
+layout: multline
+latex: \forall x \in \mathbb{R}, \\ x^{2} \geq 0
 
 # Lexer errors
 

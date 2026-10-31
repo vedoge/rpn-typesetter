@@ -74,7 +74,7 @@ const symbolArity = (symbol: string): number => (symbol === "!" ? 1 : 2);
 const symbolOperator = (symbol: string): string => (symbol === "_" ? "ssc" : symbol);
 
 /** Operators written between their operands, the only ones `br` can follow. */
-const infix: ReadonlySet<string> = new Set(["+", "-", "*", "and", "or", ...relations.keys(), ...arrows.keys()]);
+const infix: ReadonlySet<string> = new Set(["+", "-", "*", ",", "and", "or", ...relations.keys(), ...arrows.keys()]);
 
 /** What can sit on the stack while parsing. */
 type Item =
