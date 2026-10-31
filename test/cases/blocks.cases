@@ -216,6 +216,38 @@ latex: \exists x
 rpn: x forall
 latex: \forall x
 
+## a quantifier's condition is written bare
+rpn: epsilon 0 > forall
+latex: \forall \epsilon > 0
+
+## a quantifier over a set
+rpn: x reals in forall
+latex: \forall x \in \mathbb{R}
+
+## exists with a condition
+rpn: x 0 = exists
+latex: \exists x = 0
+
+## a quantifier brackets what binds looser than a relation
+rpn: p q and forall
+latex: \forall (p \wedge q)
+
+## the real part is an upright function
+rpn: z Re
+latex: \operatorname{Re} z
+
+## the imaginary part is an upright function
+rpn: z Im
+latex: \operatorname{Im} z
+
+## a real part brackets anything but an atom
+rpn: z w + Re
+latex: \operatorname{Re} (z + w)
+
+## the real part of a complex amplitude
+rpn: a tilde e i omega t * * neg ^ * Re b tilde e i omega t * * neg ^ * Re =
+latex: \operatorname{Re} (\tilde{a} e^{-i \omega t}) = \operatorname{Re} (\tilde{b} e^{-i \omega t})
+
 # Relations
 
 ## ASCII relations
@@ -422,6 +454,14 @@ latex: \sin \dot{x}
 ## a dotted letter takes a subscript directly
 rpn: x dot i ssc
 latex: \dot{x}_{i}
+
+## tilde, hat and bar are accents too
+rpn: a tilde x hat * v bar *
+latex: \tilde{a} \hat{x} \bar{v}
+
+## a hatted letter is an atom as the base of a power
+rpn: p hat 2 ^
+latex: \hat{p}^{2}
 
 ## an accent covers its whole argument, without brackets
 rpn: x y + dot

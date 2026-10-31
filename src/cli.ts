@@ -30,6 +30,7 @@ import { existsSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Diagnostic } from "./lexer.js";
+import { readMeasurements, type Measurement } from "./breaking.js";
 import { convert, locate } from "./scanner.js";
 
 /** The start of the guard line at the top of every generated file. */
@@ -127,7 +128,15 @@ export function main(args: readonly string[], log: (line: string) => void = cons
   let blocks = 0; // numbers invalid blocks across every file, as LaTeX reads them as one document
   let code = 0;
 
-  const convertFile = (file: string): void => {
+  // Widths LaTeX measured on its last run, so long equations can be broken
+  // (see breaking.ts). They're shared by every file, as are the counts of
+  // repeated equations that measurement IDs include, so an ID names one
+  // equation in the whole document.
+  const measurements = new Map<string, Measurement>();
+  const occurrences = new Map<string, number>();
+  let standalone = false; // whether the document has \documentclass, so its parts can be measured too
+
+  const convertFile = (file: string, part: boolean): void => {
     converted.add(resolve(file));
     const target = file.replace(/\.rtex$/, ".tex");
     if (existsSync(target) && !readFileSync(target, "utf8").startsWith(guardPrefix)) {
@@ -136,10 +145,20 @@ export function main(args: readonly string[], log: (line: string) => void = cons
       return;
     }
 
+    // The document's .aux holds the widths for it and the files it \inputs;
+    // an \include'd file writes its own .aux next to it.
+    const aux = file.replace(/\.rtex$/, ".aux");
+    if (existsSync(aux)) for (const [id, m] of readMeasurements(readFileSync(aux, "utf8"))) measurements.set(id, m);
+
     const document = readFileSync(file, "utf8");
-    const { output, errors, warnings, inputs } = convert(document, {
+    const result = convert(document, {
+      measurements,
+      occurrences,
+      ...(part ? { measure: standalone } : {}),
       invalid: (blockErrors) => invalidBlock(file, document, blockErrors, ++blocks),
     });
+    const { output, errors, warnings, inputs } = result;
+    if (!part) standalone = result.standalone;
     for (const w of warnings) log(format(file, document, "warning", w));
     for (const e of errors) log(format(file, document, "error", e));
     writeFileSync(target, guardLine(file) + output);
@@ -147,11 +166,11 @@ export function main(args: readonly string[], log: (line: string) => void = cons
 
     for (const name of inputs) {
       const included = join(folder, `${name.replace(/\.tex$/, "")}.rtex`);
-      if (existsSync(included) && !converted.has(resolve(included))) convertFile(included);
+      if (existsSync(included) && !converted.has(resolve(included))) convertFile(included, true);
     }
   };
 
-  convertFile(source);
+  convertFile(source, false);
   return code;
 }
 

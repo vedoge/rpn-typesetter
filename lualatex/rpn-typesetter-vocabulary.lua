@@ -47,7 +47,7 @@ local values = {
   -- Other letters LaTeX has commands for.
   ell = "\\ell", hbar = "\\hbar", hslash = "\\hslash", imath = "\\imath",
   jmath = "\\jmath", aleph = "\\aleph", beth = "\\beth", gimel = "\\gimel",
-  daleth = "\\daleth", wp = "\\wp", Re = "\\Re", Im = "\\Im", eth = "\\eth",
+  daleth = "\\daleth", wp = "\\wp", eth = "\\eth",
   -- Number sets.
   naturals = "\\mathbb{N}", integers = "\\mathbb{Z}", rationals = "\\mathbb{Q}",
   reals = "\\mathbb{R}", complex = "\\mathbb{C}",
@@ -61,13 +61,17 @@ local function set(list)
   return s
 end
 
---- Functions LaTeX has a command for (\sin, \log, \sup, …) that take one
---- argument. `gcd` and `hom` also have commands, but their arity is open.
+--- Functions that take one argument: those LaTeX has a command for (\sin,
+--- \log, \sup, …), and the real and imaginary parts `Re` and `Im`. `gcd` and
+--- `hom` also have commands, but their arity is open.
 M.functions = set {
   "arccos", "arcsin", "arctan", "arg", "cos", "cosh", "cot", "coth", "csc",
   "deg", "det", "dim", "exp", "inf", "ker", "lg", "ln", "log", "Pr", "sec", "sin",
-  "sinh", "sup", "tan", "tanh",
+  "sinh", "sup", "tan", "tanh", "Re", "Im",
 }
+
+--- Functions whose LaTeX isn't the command of the same name: \Re is the symbol ℜ, so `Re` is written upright.
+M.function_latex = { Re = "\\operatorname{Re}", Im = "\\operatorname{Im}" }
 
 --- Operators written with a subscript, taking two values: what goes underneath,
 --- then the body. `x 0 -> f lim` → lim_{x→0} f. Each maps to its LaTeX.
@@ -77,8 +81,8 @@ M.subscripted = {
   argmax = "\\operatorname*{arg\\,max}", argmin = "\\operatorname*{arg\\,min}",
 }
 
---- Accents over a value, taking one: `x dot` → ẋ (Newton's notation for derivatives). Each maps to its LaTeX.
-M.accents = { dot = "\\dot", ddot = "\\ddot" }
+--- Accents over a value, taking one: `x dot` → ẋ (Newton's notation for derivatives), `a tilde` → ã, `x hat` → x̂, `x bar` → x̄. Each maps to its LaTeX.
+M.accents = { dot = "\\dot", ddot = "\\ddot", tilde = "\\tilde", hat = "\\hat", bar = "\\bar" }
 
 --- Relations, all binding like `=`, and the LaTeX each writes. Common ones
 --- have an ASCII spelling; every one has a name.

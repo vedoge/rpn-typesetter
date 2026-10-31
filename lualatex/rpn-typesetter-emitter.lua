@@ -219,7 +219,7 @@ local function factor(node, followed)
   return child(node, r < Rank.multiplicative and (followed or r ~= Rank.prefix), followed)
 end
 
---- The argument of a function or quantifier: bracketed unless it's an atom or a subscripted atom.
+--- The argument of a function: bracketed unless it's an atom or a subscripted atom.
 local function argument(node)
   return child(node, not is_atom(node) and not is_subscripted_atom(node))
 end
@@ -252,7 +252,7 @@ local function emit_apply(node, followed)
 
   if infix_latex[operator] then return infix(node) end
 
-  if functions[operator] then return "\\" .. operator .. " " .. argument(a) end
+  if functions[operator] then return (vocab.function_latex[operator] or "\\" .. operator) .. " " .. argument(a) end
 
   local accent = accents[operator]
   if accent then return accent .. "{" .. boxed(a, "an accent") .. "}" end
@@ -294,7 +294,9 @@ local function emit_apply(node, followed)
     -- ¬ binds tighter than ∧ and ∨, so it brackets a relation or anything looser.
     return "\\neg " .. child(a, rank(a) <= Rank.relation)
   elseif operator == "exists" or operator == "forall" then
-    return "\\" .. operator .. " " .. argument(a)
+    -- What's quantified, with any condition, is written bare: ∀ε > 0,
+    -- ∀x ∈ ℝ. Only something looser than a relation is bracketed: ∀(p ∧ q).
+    return "\\" .. operator .. " " .. child(a, rank(a) < Rank.relation)
   elseif operator == "sum" then
     return "\\sum_{" .. boxed(a, "a sum's index") .. "} " .. body(b)
   elseif operator == "ser" then
