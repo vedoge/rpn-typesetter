@@ -1,6 +1,6 @@
 # Shared test cases
 
-Every implementation (the TypeScript tool now, the LuaLaTeX package later) must pass every case in this folder. A case that passes in one and fails in the other is a bug in one of them.
+Every implementation (the TypeScript tool in `src/` and the LuaLaTeX package in `lualatex/`) must pass every case in this folder. A case that passes in one and fails in the other is a bug in one of them.
 
 The cases describe what an author can observe: the LaTeX an RPN block becomes, the document a `.rtex` file becomes, and the exact error and warning messages. How an implementation gets there (its tokens, its trees) is its own business, so those tests stay with each implementation.
 

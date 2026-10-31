@@ -1,0 +1,25 @@
+% rpn-typesetter: write LaTeX math in RPN, converted inside the LuaLaTeX run.
+% The conversion is the same as the rpn-typesetter command's; see
+% rpn-typesetter.lua for how it reaches TeX.
+\NeedsTeXFormat{LaTeX2e}[2020/10/01]
+\ProvidesPackage{rpn-typesetter}[2026/10/31 v0.1.0 RPN math for LuaLaTeX]
+
+% Under pdfLaTeX the rpn-typesetter command has already converted the RPN,
+% so the package does nothing, and one source file serves both.
+\ifdefined\directlua\else
+  \PackageInfo{rpn-typesetter}{Not running under LuaLaTeX, so the package
+    does nothing.\MessageBreak RPN must be converted by the rpn-typesetter
+    command first}
+  \expandafter\endinput
+\fi
+
+% The output needs \text, pmatrix and cases (amsmath) and \mathbb (amssymb).
+% They load at the end of the preamble, so a package the author loads, with
+% any options, isn't loaded twice.
+\AddToHook{begindocument/before}{%
+  \@ifpackageloaded{amsmath}{}{\RequirePackage{amsmath}}%
+  \@ifpackageloaded{amssymb}{}{\RequirePackage{amssymb}}}
+
+\directlua{require("rpn-typesetter").start()}
+\AtBeginDocument{\directlua{require("rpn-typesetter").begin_document()}}
+\endinput
