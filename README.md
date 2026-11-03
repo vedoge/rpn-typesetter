@@ -125,6 +125,7 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 |---|---|
 | `a b + c *` | (a + b) c |
 | `a b / ` · `a sqrt` · `a 2 ^` · `x i _` | a/b as a fraction · √a · a² · xᵢ |
+| `a b div` · `x y z div /` | a/b with a slash · x over y/z (`\frac{x}{y/z}`) |
 | `4ac` · `2pi` · `x1` | 4ac · 2π · x₁ (glued letters multiply; glued digits subscript) |
 | `b neg` · `n !` | −b · n! |
 | `x dot` · `x ddot` · `a tilde` · `x hat` · `x bar` | ẋ · ẍ · ã · x̂ · x̄ (accents) |

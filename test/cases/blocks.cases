@@ -42,6 +42,62 @@ latex: a - b - c
 rpn: a b + c d - /
 latex: \frac{a + b}{c - d}
 
+## a slash fraction
+rpn: a b div
+latex: a/b
+
+## a slash fraction inside a stacked one
+rpn: x y z div /
+latex: \frac{x}{y/z}
+
+## a slash fraction brackets a sum
+rpn: a b + c d - div
+latex: (a + b)/(c - d)
+
+## a slash fraction's left product needs no brackets
+rpn: a b * c div
+latex: a b/c
+
+## a slash fraction brackets a product on its right
+rpn: a b c * div
+latex: a/(b c)
+
+## left-nested slash fractions need none
+rpn: a b div c div
+latex: a/b/c
+
+## right-nested slash fractions are bracketed
+rpn: a b c div div
+latex: a/(b/c)
+
+## a slash fraction followed by a factor is bracketed
+rpn: a b div c *
+latex: (a/b) c
+
+## a slash fraction as the last factor needs none
+rpn: c a b div *
+latex: c a/b
+
+## a slash fraction under a power
+rpn: a b div 2 ^
+latex: (a/b)^{2}
+
+## a slash fraction in an exponent
+rpn: x a b div ^
+latex: x^{a/b}
+
+## a function of a slash fraction
+rpn: a b div sin
+latex: \sin (a/b)
+
+## a stacked fraction beside a slash needs no brackets
+rpn: a 1 2 / div
+latex: a/\frac{1}{2}
+
+## a slash fraction in a sum
+rpn: a b div c +
+latex: a/b + c
+
 ## an exponent is boxed
 rpn: x a b + ^
 latex: x^{a + b}
@@ -862,6 +918,11 @@ error: `br` needs a display that can hold several lines, like multline, align or
 layout: multline
 rpn: a b + br c /
 error: `br` can't break a line inside a fraction
+
+## a break inside a slash fraction
+layout: multline
+rpn: a b + br c div
+error: `br` can't break a line inside a slash fraction
 
 ## a break inside a square root
 layout: multline

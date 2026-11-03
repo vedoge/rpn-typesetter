@@ -109,7 +109,7 @@ function rank(node: Node): number {
       if (relations.has(op)) return Rank.relation;
       if (op === "+" || op === "-" || op === "neg") return Rank.additive;
       if (prefixOperators.has(op)) return Rank.prefix;
-      if (op === "*" || op === "/") return Rank.multiplicative;
+      if (op === "*" || op === "/" || op === "div") return Rank.multiplicative;
       if (op === "^" || op === "ssc" || op === "!") return Rank.script;
       return Rank.atom; // sqrt draws its own enclosure, and an accent sits on its argument
     }
@@ -226,7 +226,26 @@ function sideBySide(parts: readonly string[], breakAtLast = false): string {
  */
 function factor(node: Node, followed: boolean): string {
   const r = rank(node);
+  // a/b c would read as a/(b c), so a slash fraction with a factor after it is bracketed: (a/b) c.
+  if (followed && isSlash(node)) return bracket(node);
   return child(node, r < Rank.multiplicative && (followed || r !== Rank.prefix), followed);
+}
+
+const isSlash = (node: Node): boolean => node.kind === "apply" && node.operator === "div";
+const isFraction = (node: Node): boolean => node.kind === "apply" && node.operator === "/";
+
+/**
+ * A slash fraction, a/b. A sum on either side is bracketed, and on the right
+ * so is a product or another slash: a/(b c), a/(b/c). A stacked fraction
+ * needs none: it's enclosed by its own bar.
+ */
+function slash(node: Node & { kind: "apply" }): string {
+  const [a, b] = node.args as [Node, Node];
+  const left = child(a, rank(a) < Rank.multiplicative && !isFraction(a));
+  const right = child(b, rank(b) <= Rank.multiplicative && !isFraction(b));
+  const out = `${left}/${right}`;
+  if (out.includes(breakMark)) fail(node, "`br` can't break a line inside a slash fraction");
+  return out;
 }
 
 /** The argument of a function: bracketed unless it's an atom or a subscripted atom. */
@@ -318,6 +337,8 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
       return sideBySide([factor(a!, true), factor(b!, followed)], node.breakBefore && !breaksOff);
     case "/":
       return `\\frac{${boxed(a!, "a fraction")}}{${boxed(b!, "a fraction")}}`;
+    case "div":
+      return slash(node);
     case "^": {
       // A prime is already a superscript, so x'_1 with a power is grouped,
       // {x'_1}^2, or LaTeX reports a double superscript. (x'^2 is fine: LaTeX
