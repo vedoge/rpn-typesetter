@@ -107,10 +107,18 @@ local function classify(chunk, span)
       if not name then return fail("a label is written `\\label{name}`, with no spaces in the name") end
       return token("label", span, { name = name })
     end
-    local command, arity = chunk:match("^(\\[A-Za-z]+)/(%d+)$")
+    -- After the slash, a number of {…} arguments, or a signature: `m` for each
+    -- {…} and `o` for each optional […], in order. Anything else stays raw LaTeX.
+    local command, after = chunk:match("^(\\[A-Za-z]+)/(%d+)$")
+    local signature
     if command then
-      if tonumber(arity) > 9 then return fail(("`%s`: a LaTeX command takes at most 9 arguments"):format(chunk)) end
-      return token("rawOperator", span, { command = command, arity = tonumber(arity) })
+      signature = ("m"):rep(math.min(tonumber(after), 10))
+    else
+      command, signature = chunk:match("^(\\[A-Za-z]+)/([om]+)$")
+    end
+    if command then
+      if #signature > 9 then return fail(("`%s`: a LaTeX command takes at most 9 arguments"):format(chunk)) end
+      return token("rawOperator", span, { command = command, arity = #signature, signature = signature })
     end
     return token("raw", span, { latex = chunk })
   end

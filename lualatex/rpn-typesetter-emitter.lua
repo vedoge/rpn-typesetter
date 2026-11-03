@@ -101,7 +101,7 @@ local function rank(node)
   if relations[op] then return Rank.relation end
   if op == "+" or op == "-" or op == "neg" then return Rank.additive end
   if prefix_operators[op] then return Rank.prefix end
-  if op == "*" or op == "/" then return Rank.multiplicative end
+  if op == "*" or op == "/" or op == "div" then return Rank.multiplicative end
   if op == "^" or op == "ssc" or op == "!" then return Rank.script end
   return Rank.atom -- sqrt draws its own enclosure, and an accent sits on its argument
 end
@@ -236,9 +236,26 @@ end
 --- multiplication. A function or sum is the exception when nothing follows
 --- it in the product (`followed` is false), because there it can't swallow
 --- anything: y sin x, but (sin x)y.
+local function is_slash(node) return node.kind == "apply" and node.operator == "div" end
+local function is_fraction(node) return node.kind == "apply" and node.operator == "/" end
+
 local function factor(node, followed)
   local r = rank(node)
+  -- a/b c would read as a/(b c), so a slash fraction with a factor after it is bracketed: (a/b) c.
+  if followed and is_slash(node) then return bracket(node) end
   return child(node, r < Rank.multiplicative and (followed or r ~= Rank.prefix), followed)
+end
+
+--- A slash fraction, a/b. A sum on either side is bracketed, and on the right
+--- so is a product or another slash: a/(b c), a/(b/c). A stacked fraction
+--- needs none: it's enclosed by its own bar.
+local function slash(node)
+  local a, b = node.args[1], node.args[2]
+  local left = child(a, rank(a) < Rank.multiplicative and not is_fraction(a))
+  local right = child(b, rank(b) <= Rank.multiplicative and not is_fraction(b))
+  local out = left .. "/" .. right
+  if has_break(out) then fail(node, "`br` can't break a line inside a slash fraction") end
+  return out
 end
 
 --- The argument of a function: bracketed unless it's an atom or a subscripted atom.
@@ -290,6 +307,8 @@ local function emit_apply(node, followed)
     return side_by_side({ factor(a, true), factor(b, followed) }, node.breakBefore and not breaks_off)
   elseif operator == "/" then
     return "\\frac{" .. boxed(a, "a fraction") .. "}{" .. boxed(b, "a fraction") .. "}"
+  elseif operator == "div" then
+    return slash(node)
   elseif operator == "^" then
     -- A prime is already a superscript, so x'_1 with a power is grouped,
     -- {x'_1}^2, or LaTeX reports a double superscript. (x'^2 is fine: LaTeX
@@ -355,7 +374,17 @@ emit_node = function(node, followed)
   if kind == "apply" then return emit_apply(node, followed) end
   if kind == "rawApply" then
     local out = { node.command }
-    for _, arg in ipairs(node.args) do out[#out + 1] = "{" .. boxed(arg, "a raw operator's argument") .. "}" end
+    for k, arg in ipairs(node.args) do
+      local emitted = boxed(arg, "a raw operator's argument")
+      if node.signature:sub(k, k) ~= "o" then
+        out[#out + 1] = "{" .. emitted .. "}"
+      elseif emitted:find("]", 1, true) then
+        -- A `]` would end an optional argument early, so the argument is braced: [{…}].
+        out[#out + 1] = "[{" .. emitted .. "}]"
+      else
+        out[#out + 1] = "[" .. emitted .. "]"
+      end
+    end
     return table.concat(out)
   end
   if kind == "variadic" then

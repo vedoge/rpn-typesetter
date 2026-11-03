@@ -45,7 +45,8 @@ export type Token = Span &
     | { readonly kind: "product"; readonly factors: readonly Factor[] } // `4ac`, `2pi`
     | { readonly kind: "symbol"; readonly symbol: SymbolText } // `+`, `[`, `;`, `<=`, …
     | { readonly kind: "raw"; readonly latex: string } // `\mathcal{F}`
-    | { readonly kind: "rawOperator"; readonly command: string; readonly arity: number } // `\overset/2`
+    // `\overset/2`, `\der/omm`: `signature` has an `m` ({…}) or `o` ([…]) per argument, in order.
+    | { readonly kind: "rawOperator"; readonly command: string; readonly arity: number; readonly signature: string }
     | { readonly kind: "text"; readonly text: string } // `"if "`
     | { readonly kind: "label"; readonly name: string } // `\label{eq:energy}`
     | { readonly kind: "notag" } // `\notag` or `\nonumber`
@@ -154,11 +155,13 @@ function classify(text: string, span: Span): Token | Diagnostic {
       if (!label) return fail("a label is written `\\label{name}`, with no spaces in the name");
       return { kind: "label", name: label[1]!, ...span };
     }
-    const op = /^(\\[A-Za-z]+)\/(\d+)$/.exec(text);
+    // After the slash, a number of {…} arguments, or a signature: `m` for each
+    // {…} and `o` for each optional […], in order. Anything else stays raw LaTeX.
+    const op = /^(\\[A-Za-z]+)\/(\d+|[om]+)$/.exec(text);
     if (op) {
-      const arity = Number(op[2]);
-      if (arity > 9) return fail(`\`${text}\`: a LaTeX command takes at most 9 arguments`);
-      return { kind: "rawOperator", command: op[1]!, arity, ...span };
+      const signature = /^\d/.test(op[2]!) ? "m".repeat(Math.min(Number(op[2]), 10)) : op[2]!;
+      if (signature.length > 9) return fail(`\`${text}\`: a LaTeX command takes at most 9 arguments`);
+      return { kind: "rawOperator", command: op[1]!, arity: signature.length, signature, ...span };
     }
     return { kind: "raw", latex: text, ...span };
   }

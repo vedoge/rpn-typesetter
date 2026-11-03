@@ -130,7 +130,7 @@ export const symbols: ReadonlySet<string> = new Set([
 //   parser rejects it for now.
 const operators: Record<string, Arity> = {
   neg: 1, sqrt: 1, exists: 1, forall: 1, not: 1,
-  ssc: 2, sum: 2, and: 2, or: 2,
+  ssc: 2, sum: 2, and: 2, or: 2, div: 2,
   ser: 3,
   int: 4,
   br: "break",

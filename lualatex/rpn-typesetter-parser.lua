@@ -33,7 +33,7 @@
 --   text { text }                            "if "
 --   product { factors }                      glued: 4ac
 --   apply { operator, args, breakBefore? }   + sqrt ssc ser …; `br` sets breakBefore
---   rawApply { command, args }               \overset/2
+--   rawApply { command, signature, args }    \overset/2, \der/omm
 --   variadic { operator, rows }              mat
 --   juxtapose { items }                      leftovers: 2 x 2 ^ → 2x²
 --
@@ -229,7 +229,7 @@ function M.parse_tokens(tokens, end_of_block)
           push({ kind = "text", text = token.text, start = token.start, stop = token.stop })
         elseif kind == "rawOperator" then
           local args = take(token.arity, token.command, token)
-          push({ kind = "rawApply", command = token.command, args = args, start = args[1] and args[1].start or token.start, stop = token.stop })
+          push({ kind = "rawApply", command = token.command, signature = token.signature, args = args, start = args[1] and args[1].start or token.start, stop = token.stop })
         elseif kind == "symbol" then
           if token.symbol == "[" then
             stack[#stack + 1] = { kind = "mark", span = token }
