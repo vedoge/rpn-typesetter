@@ -42,7 +42,7 @@ export type Node = Span &
         readonly args: readonly Node[];
         readonly breakBefore?: true; // set by `br`: break before the last argument
       }
-    | { readonly kind: "rawApply"; readonly command: string; readonly args: readonly Node[] } // \overset/2
+    | { readonly kind: "rawApply"; readonly command: string; readonly signature: string; readonly args: readonly Node[] } // \overset/2, \der/omm
     | { readonly kind: "variadic"; readonly operator: string; readonly rows: readonly (readonly Node[])[] } // mat
     | { readonly kind: "juxtapose"; readonly items: readonly Node[] } // leftovers: 2 x 2 ^ → 2x²
   );
@@ -235,7 +235,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
           break;
         case "rawOperator": {
           const args = take(token.arity, token.command, token);
-          push({ kind: "rawApply", command: token.command, args, start: args[0]?.start ?? token.start, end: token.end });
+          push({ kind: "rawApply", command: token.command, signature: token.signature, args, start: args[0]?.start ?? token.start, end: token.end });
           break;
         }
         case "symbol":

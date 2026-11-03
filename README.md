@@ -147,6 +147,7 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 | `[ a b ; c d mat` | a 2×2 matrix; `[` marks where the entries start, `;` ends a row |
 | `[ 1 x 0 = ; 0 "otherwise" cases` | a piecewise function; `"…"` is upright text |
 | `\mathcal{F}` · `a b \overset/2` | any LaTeX command, passed through as a value, or as an operator taking 2 values |
+| `2 f x \der/omm` · `3 x \sqrt/om` | `\der[2]{f}{x}` · ∛x (a signature after the slash: `o` for an optional `[…]` argument, `m` for a `{…}` one; `/2` is the same as `/mm`) |
 
 In a display environment:
 

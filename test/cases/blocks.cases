@@ -767,6 +767,30 @@ latex: \mathcal{F}_{x}
 rpn: a b \overset/2
 latex: \overset{a}{b}
 
+## a raw operator's signature: o for an optional argument, m for a mandatory one
+rpn: 3 x \sqrt/om
+latex: \sqrt[3]{x}
+
+## an optional argument is RPN like any other
+rpn: n 1 + x \sqrt/om
+latex: \sqrt[n + 1]{x}
+
+## a signature of only m's is the same as a number
+rpn: a b \overset/mm
+latex: \overset{a}{b}
+
+## arguments are taken in reading order
+rpn: a b \xrightarrow/om
+latex: \xrightarrow[a]{b}
+
+## an optional argument holding ] is braced
+rpn: \mathrm{]} x \sqrt/om
+latex: \sqrt[{\mathrm{]}}]{x}
+
+## a slash followed by anything else stays raw LaTeX
+rpn: \pi/x
+latex: \pi/x
+
 ## quoted text
 rpn: "if "
 latex: \text{if }
@@ -999,6 +1023,14 @@ error: `\overset` needs 2 values, but only 1 is available
 ## a raw operator takes at most 9 values, as a LaTeX command does
 rpn: a b \foo/10
 error: `\foo/10`: a LaTeX command takes at most 9 arguments
+
+## stack underflow for a signature counts every argument
+rpn: x \sqrt/om
+error: `\sqrt` needs 2 values, but only 1 is available
+
+## a signature takes at most 9 arguments
+rpn: \foo/omomomomom
+error: `\foo/omomomomom`: a LaTeX command takes at most 9 arguments
 
 ## a raw operator's arity can be written with leading zeros
 rpn: a b \overset/02

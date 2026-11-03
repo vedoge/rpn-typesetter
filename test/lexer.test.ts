@@ -170,7 +170,11 @@ describe("lexer", () => {
     });
 
     it("reads a raw operator with its arity", () => {
-      expect(shapes("\\overset/2")).toEqual([{ kind: "rawOperator", command: "\\overset", arity: 2 }]);
+      expect(shapes("\\overset/2")).toEqual([{ kind: "rawOperator", command: "\\overset", arity: 2, signature: "mm" }]);
+    });
+
+    it("reads a raw operator with a signature", () => {
+      expect(shapes("\\der/omm")).toEqual([{ kind: "rawOperator", command: "\\der", arity: 3, signature: "omm" }]);
     });
 
     it("recognises labels and \\notag instead of treating them as raw values", () => {

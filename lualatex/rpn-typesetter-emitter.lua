@@ -374,7 +374,17 @@ emit_node = function(node, followed)
   if kind == "apply" then return emit_apply(node, followed) end
   if kind == "rawApply" then
     local out = { node.command }
-    for _, arg in ipairs(node.args) do out[#out + 1] = "{" .. boxed(arg, "a raw operator's argument") .. "}" end
+    for k, arg in ipairs(node.args) do
+      local emitted = boxed(arg, "a raw operator's argument")
+      if node.signature:sub(k, k) ~= "o" then
+        out[#out + 1] = "{" .. emitted .. "}"
+      elseif emitted:find("]", 1, true) then
+        -- A `]` would end an optional argument early, so the argument is braced: [{…}].
+        out[#out + 1] = "[{" .. emitted .. "}]"
+      else
+        out[#out + 1] = "[" .. emitted .. "]"
+      end
+    end
     return table.concat(out)
   end
   if kind == "variadic" then

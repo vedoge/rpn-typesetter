@@ -407,7 +407,12 @@ export function emitNode(node: Node, followed = false): string {
     case "apply":
       return emitApply(node, followed);
     case "rawApply":
-      return `${node.command}${node.args.map((arg) => `{${boxed(arg, "a raw operator's argument")}}`).join("")}`;
+      return node.command + node.args.map((arg, k) => {
+        const out = boxed(arg, "a raw operator's argument");
+        if (node.signature[k] !== "o") return `{${out}}`;
+        // A `]` would end an optional argument early, so the argument is braced: [{…}].
+        return out.includes("]") ? `[{${out}}]` : `[${out}]`;
+      }).join("");
     case "variadic": {
       if (isTuple(node)) {
         // Entries are separated by commas, so an entry that is itself a comma list is bracketed.

@@ -124,6 +124,7 @@ You write & You get \\
 \verb|[ a b ; c d mat| & $@ [ a b ; c d mat$ \\
 \verb|[ 1 x 0 = ; 0 "otherwise" cases| & $@ [ 1 x 0 = ; 0 "otherwise" cases$ \\
 \verb|\mathcal{F}| \quad \verb|a b \overset/2| & $@ \mathcal{F}$ \quad $@ a b \overset/2$ \\
+\verb|3 x \sqrt/om| \quad \verb|n 1 + x \sqrt/om| & $@ 3 x \sqrt/om$ \quad $@ n 1 + x \sqrt/om$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -131,7 +132,9 @@ You write & You get \\
 \verb|[| marks where a matrix's or tuple's entries start, and \verb|;| ends a
 matrix row.
 Quoted text is upright. A token starting with \verb|\| is passed through as
-LaTeX.
+LaTeX. After a slash, a number says how many \verb|{}| arguments a command
+takes from the stack, and a signature says the same with optional ones:
+\verb|m| for \verb|{}|, \verb|o| for \verb|[]|, so \verb|\sqrt/om| takes two.
 
 In a display environment, \verb|;| separates equations, which line up at
 their relations in \verb|align|; \verb|br| after an operator breaks the line
