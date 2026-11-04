@@ -18,6 +18,8 @@ function show(node: Node): string {
       return node.latex;
     case "text":
       return JSON.stringify(node.text);
+    case "empty":
+      return "{}";
     case "product":
       return `(· ${node.factors.map(show).join(" ")})`;
     case "apply":

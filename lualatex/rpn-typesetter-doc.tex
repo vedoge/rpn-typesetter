@@ -136,6 +136,7 @@ Quoted text is upright. A token starting with \verb|\| is passed through as
 LaTeX. After a slash, a number says how many \verb|{}| arguments a command
 takes from the stack, and a signature says the same with optional ones:
 \verb|m| for \verb|{}|, \verb|o| for \verb|[]|, so \verb|\sqrt/om| takes two.
+An empty argument is \verb|{}|: \verb|{} x \sqrt/om| gives \verb|\sqrt[]{x}|.
 Any other token the package doesn't recognise, such as \verb!f(x)! or
 \verb!|x|!, is passed through as LaTeX too, in braces. The package can't see
 inside it, so it's bracketed wherever a sum would be. One holding a glued
