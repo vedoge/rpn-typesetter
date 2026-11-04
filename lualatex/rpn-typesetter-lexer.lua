@@ -29,6 +29,7 @@
 --   product { factors }                  4ac, 2pi; each factor is a number, variable or word
 --   symbol { symbol }                    + [ ; <= …
 --   raw { latex }                        \mathcal{F}
+--   passthrough { latex, warning? }      f(x), |x|: a token the lexer doesn't recognise
 --   rawOperator { command, arity }       \overset/2
 --   text { text }                        "if "
 --   label { name }                       \label{eq:energy}
@@ -89,6 +90,31 @@ local function read_number(s, i)
   local decimals = s:sub(j, j) == "." and s:match("^%d+", j + 1)
   if decimals then j = j + 1 + #decimals end
   return s:sub(i, j - 1), j
+end
+
+--- A token the lexer doesn't recognise, such as `f(x)` or `|x|`, goes to
+--- LaTeX as written. Only what would break the LaTeX around it is an error.
+--- A token that holds a symbol (`x+1`, `a,`) is likely a missing space, so it
+--- carries a warning; `_` is left out, so `x_i` passes quietly.
+local function pass_through(chunk, span)
+  local function fail(message)
+    return { start = span.start, stop = span.stop, message = message }
+  end
+  if chunk:find("[#&]") then return fail(("`%s`: `#` and `&` can't be passed to LaTeX"):format(chunk)) end
+  local depth = 0
+  for c in chunk:gsub("\\[{}]", ""):gmatch(".") do
+    if c == "{" then depth = depth + 1 elseif c == "}" then depth = depth - 1 end
+    if depth < 0 then break end
+  end
+  if depth ~= 0 then return fail(("`%s` has unbalanced braces"):format(chunk)) end
+  local warning
+  for c in chunk:gmatch(".") do
+    if c ~= "_" and symbol_characters[c] then
+      warning = ("`%s` is passed to LaTeX as written; if it's separate tokens, put spaces between them"):format(chunk)
+      break
+    end
+  end
+  return token("passthrough", span, { latex = chunk, warning = warning })
 end
 
 --- Decides what one whitespace-separated chunk is. Returns a token, or a
@@ -165,20 +191,7 @@ local function classify(chunk, span)
     return token("product", span, { factors = factors })
   end
 
-  if chunk:find("[A-Za-z]%d") then
-    return fail(("`%s`: glued digits after letters are a subscript and must end the token (`x1` → x₁)"):format(chunk))
-  end
-  if chunk:find("'", 1, true) then
-    return fail(("`%s`: primes go at the end of a token, after a letter (`x''`, `x1'`)"):format(chunk))
-  end
-  if chunk:find("[A-Za-z0-9]") then
-    for c in chunk:gmatch(".") do
-      if symbol_characters[c] then
-        return fail(("`%s` needs spaces: tokens are separated by whitespace"):format(chunk))
-      end
-    end
-  end
-  return fail(("unknown symbol `%s`"):format(chunk))
+  return pass_through(chunk, span)
 end
 
 --- Splits one RPN block into tokens. It doesn't stop at the first error: it

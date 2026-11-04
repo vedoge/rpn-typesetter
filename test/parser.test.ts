@@ -14,6 +14,7 @@ function show(node: Node): string {
     case "named":
       return node.name;
     case "raw":
+    case "passthrough":
       return node.latex;
     case "text":
       return JSON.stringify(node.text);

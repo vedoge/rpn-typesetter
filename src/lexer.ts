@@ -45,6 +45,8 @@ export type Token = Span &
     | { readonly kind: "product"; readonly factors: readonly Factor[] } // `4ac`, `2pi`
     | { readonly kind: "symbol"; readonly symbol: SymbolText } // `+`, `[`, `;`, `<=`, …
     | { readonly kind: "raw"; readonly latex: string } // `\mathcal{F}`
+    // `f(x)`, `|x|`: a token the lexer doesn't recognise. `warning` if it may be a missing space (`x+1`).
+    | { readonly kind: "passthrough"; readonly latex: string; readonly warning?: string }
     // `\overset/2`, `\der/omm`: `signature` has an `m` ({…}) or `o` ([…]) per argument, in order.
     | { readonly kind: "rawOperator"; readonly command: string; readonly arity: number; readonly signature: string }
     | { readonly kind: "text"; readonly text: string } // `"if "`
@@ -201,14 +203,25 @@ function classify(text: string, span: Span): Token | Diagnostic {
     return { kind: "product", factors, ...span };
   }
 
-  if (/[A-Za-z]\d/.test(text)) {
-    return fail(`\`${text}\`: glued digits after letters are a subscript and must end the token (\`x1\` → x₁)`);
+  return passThrough(text, span);
+}
+
+/**
+ * A token the lexer doesn't recognise, such as `f(x)` or `|x|`, goes to
+ * LaTeX as written. Only what would break the LaTeX around it is an error.
+ * A token that holds a symbol (`x+1`, `a,`) is likely a missing space, so it
+ * carries a warning; `_` is left out, so `x_i` passes quietly.
+ */
+function passThrough(text: string, span: Span): Token | Diagnostic {
+  const fail = (message: string): Diagnostic => ({ ...span, message });
+  if (/[#&]/.test(text)) return fail(`\`${text}\`: \`#\` and \`&\` can't be passed to LaTeX`);
+  let depth = 0;
+  for (const c of text.replace(/\\[{}]/g, "")) {
+    depth += c === "{" ? 1 : c === "}" ? -1 : 0;
+    if (depth < 0) break;
   }
-  if (text.includes("'")) {
-    return fail(`\`${text}\`: primes go at the end of a token, after a letter (\`x''\`, \`x1'\`)`);
-  }
-  if (/[A-Za-z0-9]/.test(text) && [...text].some((c) => symbolCharacters.has(c))) {
-    return fail(`\`${text}\` needs spaces: tokens are separated by whitespace`);
-  }
-  return fail(`unknown symbol \`${text}\``);
+  if (depth !== 0) return fail(`\`${text}\` has unbalanced braces`);
+  const glued = [...text].some((c) => c !== "_" && symbolCharacters.has(c));
+  const warning = `\`${text}\` is passed to LaTeX as written; if it's separate tokens, put spaces between them`;
+  return { kind: "passthrough", latex: text, ...(glued ? { warning } : {}), ...span };
 }

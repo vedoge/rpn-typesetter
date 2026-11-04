@@ -131,10 +131,10 @@ error: 1:6: `+` needs 2 values, but only 1 is available
 error: 1:22: `sqrt` needs 1 value, but none is available
 
 ## errors that mention LaTeX's special characters
-document: $@ a \overset/2$ $@ {b}$ $@ #$
+document: $@ a \overset/2$ $@ {b$ $@ #$
 error: 1:6: `\overset` needs 2 values, but only 1 is available
-error: 1:21: unknown symbol `{b}`
-error: 1:29: unknown symbol `#`
+error: 1:21: `{b` has unbalanced braces
+error: 1:28: `#`: `#` and `&` can't be passed to LaTeX
 
 ## a warning is reported at its line and column
 document: $@ 2 x 2 ^$

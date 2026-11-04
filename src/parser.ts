@@ -34,6 +34,7 @@ export type Node = Span &
     | { readonly kind: "variable"; readonly name: string; readonly primes?: number } // x, x''
     | { readonly kind: "named"; readonly name: string; readonly latex: string; readonly primes?: number } // pi → \pi
     | { readonly kind: "raw"; readonly latex: string } // \mathcal{F}
+    | { readonly kind: "passthrough"; readonly latex: string } // f(x): LaTeX the tool can't see inside
     | { readonly kind: "text"; readonly text: string } // "if "
     | { readonly kind: "product"; readonly factors: readonly Node[] } // glued: 4ac
     | {
@@ -229,6 +230,10 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
           break;
         case "raw":
           push({ kind: "raw", latex: token.latex, start: token.start, end: token.end });
+          break;
+        case "passthrough":
+          push({ kind: "passthrough", latex: token.latex, start: token.start, end: token.end });
+          if (token.warning) warnings.push({ start: token.start, end: token.end, message: token.warning });
           break;
         case "text":
           push({ kind: "text", text: token.text, start: token.start, end: token.end });

@@ -210,10 +210,10 @@ describe("lexer", () => {
   });
 
   it("reports every bad chunk and keeps lexing", () => {
-    const result = lex("x1y a 2sqrt b");
+    const result = lex("a} a 2sqrt b");
     expect(result.errors.map(({ start, end }) => [start, end])).toEqual([
-      [0, 3],
-      [6, 11],
+      [0, 2],
+      [5, 10],
     ]);
     expect(result.tokens.map((t) => ("name" in t ? t.name : t.kind))).toEqual(["a", "b"]);
   });
