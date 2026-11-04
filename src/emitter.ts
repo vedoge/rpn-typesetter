@@ -399,6 +399,8 @@ export function emitNode(node: Node, followed = false): string {
       return node.latex;
     case "text":
       return `\\text{${node.text}}`;
+    case "empty":
+      return "";
     case "product":
     case "juxtapose": {
       const items = node.kind === "product" ? node.factors : node.items;

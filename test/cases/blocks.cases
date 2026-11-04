@@ -787,6 +787,18 @@ latex: \xrightarrow[a]{b}
 rpn: \mathrm{]} x \sqrt/om
 latex: \sqrt[{\mathrm{]}}]{x}
 
+## an empty argument
+rpn: {} x \overset/2
+latex: \overset{}{x}
+
+## an empty last argument
+rpn: x {} \overset/2
+latex: \overset{x}{}
+
+## an empty optional argument
+rpn: {} x \sqrt/om
+latex: \sqrt[]{x}
+
 ## a slash followed by anything else stays raw LaTeX
 rpn: \pi/x
 latex: \pi/x
@@ -1023,6 +1035,22 @@ error: `\overset` needs 2 values, but only 1 is available
 ## a raw operator takes at most 9 values, as a LaTeX command does
 rpn: a b \foo/10
 error: `\foo/10`: a LaTeX command takes at most 9 arguments
+
+## an empty argument for an ordinary operator
+rpn: {} x +
+error: `{}` is an empty argument, so only a raw operator can take it (`{} t \der/2` → `\der{}{t}`)
+
+## an empty argument on its own
+rpn: {}
+error: `{}` is an empty argument, so only a raw operator can take it (`{} t \der/2` → `\der{}{t}`)
+
+## an empty argument left over
+rpn: x {}
+error: `{}` is an empty argument, so only a raw operator can take it (`{} t \der/2` → `\der{}{t}`)
+
+## an empty matrix entry
+rpn: [ a {} ; {} b mat
+error: `{}` is an empty argument, so only a raw operator can take it (`{} t \der/2` → `\der{}{t}`)
 
 ## stack underflow for a signature counts every argument
 rpn: x \sqrt/om

@@ -134,7 +134,8 @@ matrix row.
 Quoted text is upright. A token starting with \verb|\| is passed through as
 LaTeX. After a slash, a number says how many \verb|{}| arguments a command
 takes from the stack, and a signature says the same with optional ones:
-\verb|m| for \verb|{}|, \verb|o| for \verb|[]|, so \verb|\sqrt/om| takes two.
+\verb|m| for \verb|{}|, \verb|o| for \verb|[]|, so \verb|\sqrt/om| takes two. An empty argument is \verb|{}|:
+\verb|{} x \sqrt/om| gives \verb|\sqrt[]{x}|.
 
 In a display environment, \verb|;| separates equations, which line up at
 their relations in \verb|align|; \verb|br| after an operator breaks the line

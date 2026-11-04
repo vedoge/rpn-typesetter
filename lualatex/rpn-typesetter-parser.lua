@@ -62,6 +62,15 @@ local function fail(span, message)
   error({ parse_error = true, diagnostic = { start = span.start, stop = span.stop, message = message } }, 0)
 end
 
+--- `{}` is an empty argument: only a raw operator can take one.
+local function refuse_empty(nodes)
+  for _, node in ipairs(nodes) do
+    if node.kind == "empty" then
+      fail(node, "`{}` is an empty argument, so only a raw operator can take it (`{} t \\der/2` → `\\der{}{t}`)")
+    end
+  end
+end
+
 --- A single factor as a node. Primes stay on the letter; a glued subscript
 --- becomes `ssc`: `x1'` → x' 1 ssc.
 local function factor_node(factor, span)
@@ -102,7 +111,7 @@ function M.parse_tokens(tokens, end_of_block)
   end
 
   --- Takes `count` values off the stack for an operator, oldest first.
-  local function take(count, name, at)
+  local function take(count, name, at, allow_empty)
     local args = {}
     for k = 0, count - 1 do
       local top = stack[#stack - k]
@@ -113,6 +122,7 @@ function M.parse_tokens(tokens, end_of_block)
       end
       table.insert(args, 1, top.node)
     end
+    if not allow_empty then refuse_empty(args) end
     for _ = 1, count do stack[#stack] = nil end
     return args
   end
@@ -148,6 +158,7 @@ function M.parse_tokens(tokens, end_of_block)
     for _, row in ipairs(rows) do
       if #row == 0 then fail(at, ("`%s` has an empty row"):format(operator)) end
     end
+    for _, row in ipairs(rows) do refuse_empty(row) end
 
     local mark = stack[mark_index]
     for k = #stack, mark_index, -1 do stack[k] = nil end
@@ -186,6 +197,7 @@ function M.parse_tokens(tokens, end_of_block)
       if item.kind == "value" then values[#values + 1] = item.node end
     end
     if #values == 0 then fail(at, #tokens == 0 and "the RPN block is empty" or "this equation is empty") end
+    refuse_empty(values)
 
     local body = values[1]
     if #values > 1 then
@@ -227,8 +239,10 @@ function M.parse_tokens(tokens, end_of_block)
           push({ kind = "raw", latex = token.latex, start = token.start, stop = token.stop })
         elseif kind == "text" then
           push({ kind = "text", text = token.text, start = token.start, stop = token.stop })
+        elseif kind == "empty" then
+          push({ kind = "empty", start = token.start, stop = token.stop })
         elseif kind == "rawOperator" then
-          local args = take(token.arity, token.command, token)
+          local args = take(token.arity, token.command, token, true)
           push({ kind = "rawApply", command = token.command, signature = token.signature, args = args, start = args[1] and args[1].start or token.start, stop = token.stop })
         elseif kind == "symbol" then
           if token.symbol == "[" then

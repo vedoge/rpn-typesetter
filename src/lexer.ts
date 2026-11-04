@@ -48,6 +48,7 @@ export type Token = Span &
     // `\overset/2`, `\der/omm`: `signature` has an `m` ({…}) or `o` ([…]) per argument, in order.
     | { readonly kind: "rawOperator"; readonly command: string; readonly arity: number; readonly signature: string }
     | { readonly kind: "text"; readonly text: string } // `"if "`
+    | { readonly kind: "empty" } // `{}`
     | { readonly kind: "label"; readonly name: string } // `\label{eq:energy}`
     | { readonly kind: "notag" } // `\notag` or `\nonumber`
   );
@@ -145,6 +146,8 @@ function readString(source: string, from: number): { text: string; end: number }
 /** Decides what one whitespace-separated chunk is. */
 function classify(text: string, span: Span): Token | Diagnostic {
   const fail = (message: string): Diagnostic => ({ ...span, message });
+
+  if (text === "{}") return { kind: "empty", ...span }; // an empty argument for a raw operator
 
   if (text.startsWith("\\")) {
     if (text === "\\") return fail("a lone `\\` is not a LaTeX command");

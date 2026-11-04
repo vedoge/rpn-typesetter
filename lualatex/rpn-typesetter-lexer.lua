@@ -98,6 +98,8 @@ local function classify(chunk, span)
     return { start = span.start, stop = span.stop, message = message }
   end
 
+  if chunk == "{}" then return token("empty", span) end -- an empty argument for a raw operator
+
   if chunk:sub(1, 1) == "\\" then
     if chunk == "\\" then return fail("a lone `\\` is not a LaTeX command") end
     -- Labels and \notag belong to the equation, not the stack.

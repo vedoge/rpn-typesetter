@@ -35,6 +35,7 @@ export type Node = Span &
     | { readonly kind: "named"; readonly name: string; readonly latex: string; readonly primes?: number } // pi → \pi
     | { readonly kind: "raw"; readonly latex: string } // \mathcal{F}
     | { readonly kind: "text"; readonly text: string } // "if "
+    | { readonly kind: "empty" } // {}: an empty argument, for raw operators only
     | { readonly kind: "product"; readonly factors: readonly Node[] } // glued: 4ac
     | {
         readonly kind: "apply"; // an operator and the values it took: + sqrt ssc ser …
@@ -92,6 +93,12 @@ function fail(span: Span, message: string): never {
   throw new ParseError({ start: span.start, end: span.end, message });
 }
 
+/** `{}` is an empty argument: only a raw operator can take one. */
+function refuseEmpty(nodes: readonly Node[]) {
+  const empty = nodes.find((node) => node.kind === "empty");
+  if (empty) fail(empty, "`{}` is an empty argument, so only a raw operator can take it (`{} t \\der/2` → `\\der{}{t}`)");
+}
+
 /**
  * Parses a block's tokens. `endOfBlock` is where errors about the end of the
  * block point. It stops at the first error, because after one the stack no
@@ -109,7 +116,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
   const push = (node: Node) => stack.push({ kind: "value", node });
 
   /** Takes `count` values off the stack for an operator, oldest first. */
-  function take(count: number, name: string, at: Span): Node[] {
+  function take(count: number, name: string, at: Span, allowEmpty = false): Node[] {
     const args: Node[] = [];
     for (let k = 0; k < count; k++) {
       const top = stack[stack.length - 1 - k];
@@ -120,6 +127,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
       }
       args.unshift(top.node);
     }
+    if (!allowEmpty) refuseEmpty(args);
     stack.length -= count;
     return args;
   }
@@ -148,6 +156,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
     if (operator === "tuple" && rows.length > 1) fail(at, "a `tuple` has one row of entries, so it takes no `;`");
     if (operator === "tuple" && rows[0]!.length === 0) fail(at, "this `tuple` has no entries");
     if (rows.some((row) => row.length === 0)) fail(at, `\`${operator}\` has an empty row`);
+    refuseEmpty(rows.flat());
 
     const mark = stack[markIndex] as Extract<Item, { kind: "mark" }>;
     stack = stack.slice(0, markIndex);
@@ -179,6 +188,7 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
     const values = stack.flatMap((item) => (item.kind === "value" ? [item.node] : []));
     const [only, ...rest] = values;
     if (!only) fail(at, tokens.length === 0 ? "the RPN block is empty" : "this equation is empty");
+    refuseEmpty(values);
 
     let body = only;
     if (rest.length > 0) {
@@ -233,8 +243,11 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
         case "text":
           push({ kind: "text", text: token.text, start: token.start, end: token.end });
           break;
+        case "empty":
+          push({ kind: "empty", start: token.start, end: token.end });
+          break;
         case "rawOperator": {
-          const args = take(token.arity, token.command, token);
+          const args = take(token.arity, token.command, token, true);
           push({ kind: "rawApply", command: token.command, signature: token.signature, args, start: args[0]?.start ?? token.start, end: token.end });
           break;
         }

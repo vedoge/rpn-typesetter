@@ -365,6 +365,7 @@ emit_node = function(node, followed)
   if kind == "named" then return node.latex .. ("'"):rep(node.primes or 0) end
   if kind == "raw" then return node.latex end
   if kind == "text" then return "\\text{" .. node.text .. "}" end
+  if kind == "empty" then return "" end
   if kind == "product" or kind == "juxtapose" then
     local items = kind == "product" and node.factors or node.items
     local parts = {}
