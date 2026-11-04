@@ -233,6 +233,8 @@ function M.parse_tokens(tokens, end_of_block)
           end
         elseif kind == "text" then
           push({ kind = "text", text = token.text, start = token.start, stop = token.stop })
+        elseif kind == "empty" then
+          push({ kind = "empty", start = token.start, stop = token.stop })
         elseif kind == "rawOperator" then
           local args = take(token.arity, token.command, token)
           push({ kind = "rawApply", command = token.command, signature = token.signature, args = args, start = args[1] and args[1].start or token.start, stop = token.stop })

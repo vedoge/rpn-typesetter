@@ -624,13 +624,13 @@ latex: {x'1}
 
 ## a glued comma passes through, with a warning
 rpn: a, b
-latex: ({a,}) b
+latex: {\left(a,\right)} b
 warning: `a,` is passed to LaTeX as written; if it's separate tokens, put spaces between them
 warning: 2 values were left on the stack, so they're set side by side; is an operator missing?
 
 ## a lone prime passes through
 rpn: x ' *
-latex: x ({'})
+latex: x {\left('\right)}
 
 ## an operator can't take a prime
 rpn: x sin'
@@ -788,6 +788,18 @@ latex: \xrightarrow[a]{b}
 ## an optional argument holding ] is braced
 rpn: \mathrm{]} x \sqrt/om
 latex: \sqrt[{\mathrm{]}}]{x}
+
+## an empty argument
+rpn: {} x \overset/2
+latex: \overset{}{x}
+
+## an empty last argument
+rpn: x {} \overset/2
+latex: \overset{x}{}
+
+## an empty optional argument
+rpn: {} x \sqrt/om
+latex: \sqrt[]{x}
 
 ## a slash followed by anything else stays raw LaTeX
 rpn: \pi/x
@@ -968,15 +980,15 @@ latex: {f(x)}
 
 ## a passed-through token is bracketed like a sum: under a power
 rpn: f(x) 2 ^
-latex: ({f(x)})^{2}
+latex: {\left(f(x)\right)}^{2}
 
 ## a passed-through token is bracketed like a sum: in a product
 rpn: 2 f(x) *
-latex: 2 ({f(x)})
+latex: 2 {\left(f(x)\right)}
 
 ## a passed-through token is bracketed like a sum: after a minus
 rpn: a f(x) -
-latex: a - ({f(x)})
+latex: a - {\left(f(x)\right)}
 
 ## a passed-through token isn't bracketed where a sum isn't
 rpn: y f(x) a + =
@@ -984,7 +996,7 @@ latex: y = {f(x)} + a
 
 ## a passed-through token as a function's argument
 rpn: f(x) sin
-latex: \sin ({f(x)})
+latex: \sin {\left(f(x)\right)}
 
 ## a passed-through token takes a subscript without visible brackets
 rpn: x_i j _
@@ -1008,7 +1020,7 @@ latex: {x1y}
 
 ## a glued symbol passes through, with a warning
 rpn: x+1 2 ^
-latex: ({x+1})^{2}
+latex: {\left(x+1\right)}^{2}
 warning: `x+1` is passed to LaTeX as written; if it's separate tokens, put spaces between them
 
 ## a glued minus at the end
@@ -1087,6 +1099,27 @@ error: `\overset` needs 2 values, but only 1 is available
 ## a raw operator takes at most 9 values, as a LaTeX command does
 rpn: a b \foo/10
 error: `\foo/10`: a LaTeX command takes at most 9 arguments
+
+## a stray {} is a literal empty group
+rpn: {} x +
+latex: {} + x
+
+## a stray {} on its own
+rpn: {}
+latex: {}
+
+## a stray {} under a power needs no brackets
+rpn: {} 2 ^
+latex: {}^{2}
+
+## a stray {} left over
+rpn: x {}
+latex: x {}
+warning: 2 values were left on the stack, so they're set side by side; is an operator missing?
+
+## an empty matrix entry
+rpn: [ a {} ; {} b mat
+latex: \begin{pmatrix} a & {} \\ {} & b \end{pmatrix}
 
 ## stack underflow for a signature counts every argument
 rpn: x \sqrt/om

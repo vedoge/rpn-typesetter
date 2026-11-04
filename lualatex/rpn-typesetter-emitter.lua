@@ -108,7 +108,7 @@ local function rank(node)
   return Rank.atom -- sqrt draws its own enclosure, and an accent sits on its argument
 end
 
-local atoms = { number = true, variable = true, named = true, raw = true, text = true }
+local atoms = { number = true, variable = true, named = true, raw = true, text = true, empty = true }
 
 --- The decided atoms, and an accent over one (ẋ): these never get brackets anywhere.
 local function is_tuple(node) return node.kind == "variadic" and node.operator == "tuple" end
@@ -169,6 +169,8 @@ end
 local emit_node
 
 local function bracket(node)
+  -- A passed-through token's braces go outside its brackets, which stretch to fit: {\left(f(x)\right)}.
+  if node.kind == "passthrough" then return "{\\left(" .. node.latex .. "\\right)}" end
   local inner = emit_node(node)
   if not has_break(inner) then
     return is_tall(node) and ("\\left(" .. inner .. "\\right)") or ("(" .. inner .. ")")
@@ -368,6 +370,7 @@ emit_node = function(node, followed)
   if kind == "raw" then return node.latex end
   if kind == "passthrough" then return "{" .. node.latex .. "}" end
   if kind == "text" then return "\\text{" .. node.text .. "}" end
+  if kind == "empty" then return "{}" end -- a stray {} is a literal empty group; a raw operator's empty argument is handled there
   if kind == "product" or kind == "juxtapose" then
     local items = kind == "product" and node.factors or node.items
     local parts = {}
@@ -378,7 +381,7 @@ emit_node = function(node, followed)
   if kind == "rawApply" then
     local out = { node.command }
     for k, arg in ipairs(node.args) do
-      local emitted = boxed(arg, "a raw operator's argument")
+      local emitted = arg.kind == "empty" and "" or boxed(arg, "a raw operator's argument")
       if node.signature:sub(k, k) ~= "o" then
         out[#out + 1] = "{" .. emitted .. "}"
       elseif emitted:find("]", 1, true) then
