@@ -168,6 +168,8 @@ function isTall(node: Node): boolean {
 }
 
 function bracket(node: Node): string {
+  // A passed-through token's braces go outside its brackets, which stretch to fit: {\left(f(x)\right)}.
+  if (node.kind === "passthrough") return `{\\left(${node.latex}\\right)}`;
   const inner = emitNode(node);
   if (!inner.includes(breakMark)) return isTall(node) ? `\\left(${inner}\\right)` : `(${inner})`;
 

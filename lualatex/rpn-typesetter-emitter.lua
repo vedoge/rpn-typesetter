@@ -169,6 +169,8 @@ end
 local emit_node
 
 local function bracket(node)
+  -- A passed-through token's braces go outside its brackets, which stretch to fit: {\left(f(x)\right)}.
+  if node.kind == "passthrough" then return "{\\left(" .. node.latex .. "\\right)}" end
   local inner = emit_node(node)
   if not has_break(inner) then
     return is_tall(node) and ("\\left(" .. inner .. "\\right)") or ("(" .. inner .. ")")

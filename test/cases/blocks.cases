@@ -624,13 +624,13 @@ latex: {x'1}
 
 ## a glued comma passes through, with a warning
 rpn: a, b
-latex: ({a,}) b
+latex: {\left(a,\right)} b
 warning: `a,` is passed to LaTeX as written; if it's separate tokens, put spaces between them
 warning: 2 values were left on the stack, so they're set side by side; is an operator missing?
 
 ## a lone prime passes through
 rpn: x ' *
-latex: x ({'})
+latex: x {\left('\right)}
 
 ## an operator can't take a prime
 rpn: x sin'
@@ -980,15 +980,15 @@ latex: {f(x)}
 
 ## a passed-through token is bracketed like a sum: under a power
 rpn: f(x) 2 ^
-latex: ({f(x)})^{2}
+latex: {\left(f(x)\right)}^{2}
 
 ## a passed-through token is bracketed like a sum: in a product
 rpn: 2 f(x) *
-latex: 2 ({f(x)})
+latex: 2 {\left(f(x)\right)}
 
 ## a passed-through token is bracketed like a sum: after a minus
 rpn: a f(x) -
-latex: a - ({f(x)})
+latex: a - {\left(f(x)\right)}
 
 ## a passed-through token isn't bracketed where a sum isn't
 rpn: y f(x) a + =
@@ -996,7 +996,7 @@ latex: y = {f(x)} + a
 
 ## a passed-through token as a function's argument
 rpn: f(x) sin
-latex: \sin ({f(x)})
+latex: \sin {\left(f(x)\right)}
 
 ## a passed-through token takes a subscript without visible brackets
 rpn: x_i j _
@@ -1020,7 +1020,7 @@ latex: {x1y}
 
 ## a glued symbol passes through, with a warning
 rpn: x+1 2 ^
-latex: ({x+1})^{2}
+latex: {\left(x+1\right)}^{2}
 warning: `x+1` is passed to LaTeX as written; if it's separate tokens, put spaces between them
 
 ## a glued minus at the end
