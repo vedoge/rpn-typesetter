@@ -149,6 +149,7 @@ Values come first, then the operator that combines them: `a b +` is a + b. Token
 | `f(x)` · `g'(t) 2 ^` · `\|x\|` | f(x) · (g′(t))² · \|x\| (a token the tool doesn't recognise is passed through as LaTeX, in braces, and bracketed like a sum; one with a glued symbol, like `x+1`, gets a warning) |
 | `\mathcal{F}` · `a b \overset/2` | any LaTeX command, passed through as a value, or as an operator taking 2 values |
 | `2 f x \der/omm` · `3 x \sqrt/om` | `\der[2]{f}{x}` · ∛x (a signature after the slash: `o` for an optional `[…]` argument, `m` for a `{…}` one; `/2` is the same as `/mm`) |
+| `{} t \der/2` | `\der{}{t}` (`{}` is an empty argument for a raw operator; anywhere else it's a literal `{}`) |
 
 In a display environment:
 

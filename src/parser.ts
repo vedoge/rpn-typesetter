@@ -36,6 +36,7 @@ export type Node = Span &
     | { readonly kind: "raw"; readonly latex: string } // \mathcal{F}
     | { readonly kind: "passthrough"; readonly latex: string } // f(x): LaTeX the tool can't see inside
     | { readonly kind: "text"; readonly text: string } // "if "
+    | { readonly kind: "empty" } // {}: an empty argument for a raw operator; elsewhere a literal {}
     | { readonly kind: "product"; readonly factors: readonly Node[] } // glued: 4ac
     | {
         readonly kind: "apply"; // an operator and the values it took: + sqrt ssc ser …
@@ -237,6 +238,9 @@ export function parseTokens(tokens: readonly Token[], endOfBlock: Span): ParseRe
           break;
         case "text":
           push({ kind: "text", text: token.text, start: token.start, end: token.end });
+          break;
+        case "empty":
+          push({ kind: "empty", start: token.start, end: token.end });
           break;
         case "rawOperator": {
           const args = take(token.arity, token.command, token);

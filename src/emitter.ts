@@ -124,7 +124,7 @@ function rank(node: Node): number {
 function isAtom(node: Node): boolean {
   if (node.kind === "apply" && accents.has(node.operator)) return isAtom(node.args[0]!);
   if (isTuple(node)) return true; // it brings its own brackets: sin (x, y), (a, b)^2
-  return ["number", "variable", "named", "raw", "text"].includes(node.kind);
+  return ["number", "variable", "named", "raw", "text", "empty"].includes(node.kind);
 }
 
 const isTuple = (node: Node): boolean => node.kind === "variadic" && node.operator === "tuple";
@@ -403,6 +403,8 @@ export function emitNode(node: Node, followed = false): string {
       return `{${node.latex}}`;
     case "text":
       return `\\text{${node.text}}`;
+    case "empty":
+      return "{}"; // a stray {} is a literal empty group; a raw operator's empty argument is handled there
     case "product":
     case "juxtapose": {
       const items = node.kind === "product" ? node.factors : node.items;
@@ -412,7 +414,7 @@ export function emitNode(node: Node, followed = false): string {
       return emitApply(node, followed);
     case "rawApply":
       return node.command + node.args.map((arg, k) => {
-        const out = boxed(arg, "a raw operator's argument");
+        const out = arg.kind === "empty" ? "" : boxed(arg, "a raw operator's argument");
         if (node.signature[k] !== "o") return `{${out}}`;
         // A `]` would end an optional argument early, so the argument is braced: [{…}].
         return out.includes("]") ? `[{${out}}]` : `[${out}]`;

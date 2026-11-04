@@ -789,6 +789,18 @@ latex: \xrightarrow[a]{b}
 rpn: \mathrm{]} x \sqrt/om
 latex: \sqrt[{\mathrm{]}}]{x}
 
+## an empty argument
+rpn: {} x \overset/2
+latex: \overset{}{x}
+
+## an empty last argument
+rpn: x {} \overset/2
+latex: \overset{x}{}
+
+## an empty optional argument
+rpn: {} x \sqrt/om
+latex: \sqrt[]{x}
+
 ## a slash followed by anything else stays raw LaTeX
 rpn: \pi/x
 latex: \pi/x
@@ -1087,6 +1099,27 @@ error: `\overset` needs 2 values, but only 1 is available
 ## a raw operator takes at most 9 values, as a LaTeX command does
 rpn: a b \foo/10
 error: `\foo/10`: a LaTeX command takes at most 9 arguments
+
+## a stray {} is a literal empty group
+rpn: {} x +
+latex: {} + x
+
+## a stray {} on its own
+rpn: {}
+latex: {}
+
+## a stray {} under a power needs no brackets
+rpn: {} 2 ^
+latex: {}^{2}
+
+## a stray {} left over
+rpn: x {}
+latex: x {}
+warning: 2 values were left on the stack, so they're set side by side; is an operator missing?
+
+## an empty matrix entry
+rpn: [ a {} ; {} b mat
+latex: \begin{pmatrix} a & {} \\ {} & b \end{pmatrix}
 
 ## stack underflow for a signature counts every argument
 rpn: x \sqrt/om
