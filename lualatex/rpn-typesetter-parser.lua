@@ -30,6 +30,7 @@
 --   variable { name, primes? }               x, x''
 --   named { name, latex, primes? }           pi → \pi
 --   raw { latex }                            \mathcal{F}
+--   passthrough { latex }                    f(x): LaTeX the tool can't see inside
 --   text { text }                            "if "
 --   product { factors }                      glued: 4ac
 --   apply { operator, args, breakBefore? }   + sqrt ssc ser …; `br` sets breakBefore
@@ -225,6 +226,11 @@ function M.parse_tokens(tokens, end_of_block)
           push({ kind = "product", factors = factors, start = token.start, stop = token.stop })
         elseif kind == "raw" then
           push({ kind = "raw", latex = token.latex, start = token.start, stop = token.stop })
+        elseif kind == "passthrough" then
+          push({ kind = "passthrough", latex = token.latex, start = token.start, stop = token.stop })
+          if token.warning then
+            warnings[#warnings + 1] = { start = token.start, stop = token.stop, message = token.warning }
+          end
         elseif kind == "text" then
           push({ kind = "text", text = token.text, start = token.start, stop = token.stop })
         elseif kind == "rawOperator" then

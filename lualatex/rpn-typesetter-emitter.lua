@@ -91,6 +91,8 @@ for name in pairs(subscripted) do prefix_operators[name] = true end
 local function rank(node)
   local kind = node.kind
   if kind == "product" or kind == "juxtapose" then return Rank.multiplicative end
+  -- the tool can't see inside f(x) or x+1, so it's bracketed wherever a sum would be
+  if kind == "passthrough" then return Rank.additive end
   if kind ~= "apply" then return Rank.atom end -- numbers, letters, raw LaTeX, text, matrices, raw operators
   local op = node.operator
   if op == "," then return Rank.comma end
@@ -327,7 +329,7 @@ local function emit_apply(node, followed)
     -- power whose own base is subscripted (x_i^2) is grouped for the same reason.
     local power = a.kind == "apply" and a.operator == "^"
       and not (a.args[1].kind == "apply" and a.args[1].operator == "ssc")
-    local base = (is_atom(a) or power) and emit_node(a) or ("{" .. boxed(a, "a subscripted group") .. "}")
+    local base = (is_atom(a) or power or a.kind == "passthrough") and emit_node(a) or ("{" .. boxed(a, "a subscripted group") .. "}")
     return base .. "_{" .. boxed(b, "a subscript") .. "}"
   elseif operator == "neg" then
     return "-" .. child(a, rank(a) <= Rank.additive)
@@ -364,6 +366,7 @@ emit_node = function(node, followed)
   if kind == "variable" then return node.name .. ("'"):rep(node.primes or 0) end
   if kind == "named" then return node.latex .. ("'"):rep(node.primes or 0) end
   if kind == "raw" then return node.latex end
+  if kind == "passthrough" then return "{" .. node.latex .. "}" end
   if kind == "text" then return "\\text{" .. node.text .. "}" end
   if kind == "product" or kind == "juxtapose" then
     local items = kind == "product" and node.factors or node.items

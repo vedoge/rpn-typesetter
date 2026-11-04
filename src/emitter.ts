@@ -99,6 +99,8 @@ function rank(node: Node): number {
     case "product":
     case "juxtapose":
       return Rank.multiplicative;
+    case "passthrough":
+      return Rank.additive; // the tool can't see inside f(x) or x+1, so it's bracketed wherever a sum would be
     case "apply": {
       const op = node.operator;
       if (op === ",") return Rank.comma;
@@ -353,7 +355,7 @@ function emitApply(node: Node & { kind: "apply" }, followed: boolean): string {
       // invisible group, so x_i_j doesn't become a double-subscript error. A
       // power whose own base is subscripted (x_i^2) is grouped for the same reason.
       const power = a!.kind === "apply" && a!.operator === "^" && !(a!.args[0]!.kind === "apply" && a!.args[0]!.operator === "ssc");
-      const base = isAtom(a!) || power ? emitNode(a!) : `{${boxed(a!, "a subscripted group")}}`;
+      const base = isAtom(a!) || power || a!.kind === "passthrough" ? emitNode(a!) : `{${boxed(a!, "a subscripted group")}}`;
       return `${base}_{${boxed(b!, "a subscript")}}`;
     }
     case "neg":
@@ -397,6 +399,8 @@ export function emitNode(node: Node, followed = false): string {
       return node.latex + "'".repeat(node.primes ?? 0);
     case "raw":
       return node.latex;
+    case "passthrough":
+      return `{${node.latex}}`;
     case "text":
       return `\\text{${node.text}}`;
     case "product":
